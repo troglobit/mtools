@@ -6,6 +6,12 @@
  *
  * SOURCE CODE RELEASED TO THE PUBLIC DOMAIN
  * 
+ * version 2.0 - 5/20/2002 
+ * version 2.1 - 12/4/2002  
+ * 	By default, msend does not join multicast group. If  -join option is 
+ * 	given, msend joins the multicast group. 
+ * 
+ * 
  * Based on this public domain program:
  * u_mctest.c            (c) Bob Quinn           2/4/97
  * 
@@ -43,6 +49,8 @@ int SLEEP_TIME=1000;
 unsigned long IP; 
 int NUM=0; 
 
+int join_flag;
+
 #ifndef WIN32
 typedef struct timerhandler_s {
 	int 	s; 
@@ -57,17 +65,19 @@ void timerhandler();
 #endif
 
 void printHelp(void) {
-      printf("msend version 2.0\nUsage: msend -g group -p port [-i IP] [-t ttl] [-P period] [-text \"text\"|-n] \n\
+      printf("msend version 2.1\nUsage: msend -g group -p port [-join] [-i IP] [-t ttl] [-P period] [-text \"text\"|-n] \n       msend -v\n\n\
         -g group    specifies the IP multicast address of the group\n\
                     to which packets are sent.\n\
         -p port     specifies the port number on which packets are sent.\n\
+        -join       specifies that the sender joins the multicast group.\n\
         -i ip       specifies the IP address of the interface to use \n\
                     to send the packets.\n\
         -t ttl      Sets the TTL of the packets.\n\
         -P period   Send a packet every \"period\" milliseconds.\n\
         -text       Puts \"text\" in the payload of the message.\n\
         -n          Encodes an increasing counter in the payload of\n\
-                    the packets.\n");
+                    the packets.\n\
+        -v          Print version information.\n");
 }
 
 int main( int argc, char *argv[])
@@ -89,12 +99,21 @@ int main( int argc, char *argv[])
 #endif
 
   TTL_VALUE = 1;
-  if( argc < 5 ) {
+  if( argc < 2 ) {
     printHelp(); 
-    return 0;
+    return 1;
   }
   strcpy(achOut, ""); 
+
+  join_flag = 0; /* not join */
+
   ii = 1;
+
+  if ( (strcmp(argv[ii], "-v") == 0) && ( argc == 2 ) ) {
+        printf("msend version 2.1\n");
+        return 0;
+  }
+
   while (ii < argc) {
     if ( strcmp(argv[ii], "-g") == 0 ) {
         ii++;
@@ -104,6 +123,10 @@ int main( int argc, char *argv[])
     else if ( strcmp(argv[ii], "-p") == 0 ) {
         ii++;
         TEST_PORT = atoi(argv[ii]);
+        ii++;
+    }
+    else if ( strcmp(argv[ii], "-join") == 0 ) {
+        join_flag++;;
         ii++;
     }
     else if ( strcmp(argv[ii], "-i") == 0 ) {
@@ -131,6 +154,12 @@ int main( int argc, char *argv[])
         strcpy(achOut, argv[ii]);
         ii++;
     }
+/*
+    else if ( strcmp(argv[ii], "-v") == 0 ) {
+        printf("msend version 2.1\n");
+        return 0;
+    }
+*/
     else {
         printHelp();
         return 1;
@@ -178,13 +207,15 @@ int main( int argc, char *argv[])
   /* join the multicast group. */
   stMreq.imr_multiaddr.s_addr = inet_addr(TEST_ADDR);
   stMreq.imr_interface.s_addr = INADDR_ANY;
-  iRet = setsockopt(s, 
-     IPPROTO_IP, 
-     IP_ADD_MEMBERSHIP, 
-     (char *)&stMreq, 
-     sizeof(stMreq));
-  if (iRet == SOCKET_ERROR) {
-    printf ("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
+  if (join_flag == 1) {
+     iRet = setsockopt(s, 
+        IPPROTO_IP, 
+        IP_ADD_MEMBERSHIP, 
+        (char *)&stMreq, 
+        sizeof(stMreq));
+     if (iRet == SOCKET_ERROR) {
+       printf ("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
+     } 
   } 
 
   /* set TTL to traverse up to multiple routers */

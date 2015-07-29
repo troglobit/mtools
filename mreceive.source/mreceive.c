@@ -6,6 +6,10 @@
  *
  * SOURCE CODE RELEASED TO THE PUBLIC DOMAIN
  * 
+ * version 2.0 - 5/20/2002
+ * version 2.1 - 12/4/2002
+ *	Update version display. 
+ * 
  * Based on this public domain program:
  * u_mctest.c            (c) Bob Quinn           2/4/97
  * 
@@ -43,16 +47,17 @@ unsigned long IP[MAXIP];
 int NUM=0; 
 
 void printHelp(void) {
-      printf("mreceive version 2.0\nUsage: mreceive -g group -p port -i ip [-i ip ...] -n\n\
+      printf("mreceive version 2.1\nUsage: mreceive -g group -p port -i ip [-i ip ...] -n\n       mreceive -v\n\n\
         -g group    specifies the IP multicast address of the group \n\
                     to listen to.\n\
         -p port     specifies the port number to listen to.\n\
         -i ip       specifies the IP address of the interface to use \n\
-                    for reception\n\
+                    for reception.\n\
                     (several -i options may be utilized)\n\
         -n          interprets the contents of the message as a number\n\
                     (messages sent with send -n) instead of a string of \n\
-                    characters.\n");
+                    characters.\n\
+        -v          Print version information.\n");
 }
 
 int main( int argc, char *argv[])
@@ -78,12 +83,19 @@ int main( int argc, char *argv[])
   struct timeval tv; 
 #endif
 
-  if( argc < 4 ) {
+  if( argc < 2 ) {
     printHelp(); 
     return 1;
   }
 
   ii = 1;
+
+  if ( (strcmp(argv[ii], "-v") == 0) && ( argc == 2 ) ) {
+        printf("mreceive version 2.1\n");
+        return 0;
+  }
+
+
   while (ii < argc) {
     if ( strcmp(argv[ii], "-g") == 0 ) {
         ii++;

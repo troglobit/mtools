@@ -3,7 +3,7 @@ NAME
 	msend - send UDP messages to a multicast group
 
 SYNOPSIS
-	msend -g group -p port [-t ttl] [-i ip] [-P period] [-text \"text\"|-n]
+	msend -g group -p port [-join] [-t ttl] [-i ip] [-P period] [-text \"text\"|-n]
 	msend -v
 
 DESCRIPTION
@@ -14,6 +14,8 @@ DESCRIPTION
 
 	-p	Specify the UDP port number used by the multicast group.
 
+	-join	Specify that the sender joins the multicast group.
+
 	-t	Specify the ttl value in the message. The default value is 1.
 
 	-i	Specify the IP address of the interface to be used to send the 
@@ -21,7 +23,7 @@ DESCRIPTION
 		the default interface selected by the system will be used.
 
 	-P	Specify the interval between two transmitted packets. The 
-		default value is 1000 (second).
+		default value is 1000 milliseconds.
 
 	-text	Specify a string which is sent as the payload of the packets 
 		and is displayed by the mreceive command. The default value is 
