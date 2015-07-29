@@ -47,7 +47,7 @@ int NUM = 0;
 
 void printHelp(void)
 {
-	printf("mreceive version 2.2\n\
+	printf("mreceive version %s\n\
 Usage: mreceive [-g group] [-p port] [-i ip] ... [-i IP] [-n]\n\
        mreceive [-v|-h]\n\n\
         -g group     Specify the IP multicast address from which the packets are\n\
@@ -62,12 +62,12 @@ Usage: mreceive [-g group] [-p port] [-i ip] ... [-i IP] [-n]\n\
                      sent with msend -n) instead of a string of characters. It should\n\
 		     be specified while running msend with -n option.\n\
         -v           Print version information.\n\
-        -h           Print the command usage.\n");
+        -h           Print the command usage.\n", VERSION);
 }
 
 int main(int argc, char *argv[])
 {
-	struct sockaddr_in stLocal, stTo, stFrom;
+	struct sockaddr_in stLocal, stFrom;
 	unsigned char achIn[BUFSIZE];
 	int s, i;
 	struct ip_mreq stMreq;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 
 	/* avoid EADDRINUSE error on bind() */
 	iTmp = TRUE;
-	iRet = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&iTmp, sizeof (iTmp));
+	iRet = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&iTmp, sizeof(iTmp));
 	if (iRet == SOCKET_ERROR) {
 		printf("setsockopt() SO_REUSEADDR failed.\n");
 		exit(1);
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 	stLocal.sin_family = AF_INET;
 	stLocal.sin_addr.s_addr = htonl(INADDR_ANY);
 	stLocal.sin_port = htons(TEST_PORT);
-	iRet = bind(s, (struct sockaddr *)&stLocal, sizeof (stLocal));
+	iRet = bind(s, (struct sockaddr *)&stLocal, sizeof(stLocal));
 	if (iRet == SOCKET_ERROR) {
 		printf("bind() failed.\n");
 		exit(1);
@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
 	if (!ipnum) {		/* single interface */
 		stMreq.imr_multiaddr.s_addr = inet_addr(TEST_ADDR);
 		stMreq.imr_interface.s_addr = INADDR_ANY;
-		iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof (stMreq));
+		iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof(stMreq));
 		if (iRet == SOCKET_ERROR) {
 			printf("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
 			exit(1);
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 		for (i = 0; i < ipnum; i++) {
 			stMreq.imr_multiaddr.s_addr = inet_addr(TEST_ADDR);
 			stMreq.imr_interface.s_addr = IP[i];
-			iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof (stMreq));
+			iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof(stMreq));
 			if (iRet == SOCKET_ERROR) {
 				printf("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
 				exit(1);
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 
 	/* set TTL to traverse up to multiple routers */
 	iTmp = TTL_VALUE;
-	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&iTmp, sizeof (iTmp));
+	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&iTmp, sizeof(iTmp));
 	if (iRet == SOCKET_ERROR) {
 		printf("setsockopt() IP_MULTICAST_TTL failed.\n");
 		exit(1);
@@ -187,21 +187,17 @@ int main(int argc, char *argv[])
 	/* disable loopback */
 	/* iTmp = TRUE; */
 	iTmp = FALSE;
-	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&iTmp, sizeof (iTmp));
+	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&iTmp, sizeof(iTmp));
 	if (iRet == SOCKET_ERROR) {
 		printf("setsockopt() IP_MULTICAST_LOOP failed.\n");
 		exit(1);
 	}
 
-	/* assign our destination address */
-	stTo.sin_family = AF_INET;
-	stTo.sin_addr.s_addr = inet_addr(TEST_ADDR);
-	stTo.sin_port = htons(TEST_PORT);
 	printf("Now receiving from multicast group: %s\n", TEST_ADDR);
 
 	for (i = 0;; i++) {
-		int addr_size = sizeof (struct sockaddr_in);
-		static iCounter = 1;
+		socklen_t addr_size = sizeof(struct sockaddr_in);
+		static int iCounter = 1;
 
 		/* receive from the multicast address */
 

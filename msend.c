@@ -63,7 +63,7 @@ void timerhandler();
 
 void printHelp(void)
 {
-	printf("msend version 2.2\n\
+	printf("msend version %s\n\
 Usage:  msend [-g group] [-p port] [-join] [-i IP] [-t ttl] [-P period]\n\
 	      [-text \"text\"|-n]\n\
 	msend [-v|-h]\n\n\
@@ -87,37 +87,21 @@ Usage:  msend [-g group] [-p port] [-join] [-i IP] [-t ttl] [-P period]\n\
         -n           Interpret the contents of the message as a number (messages\n\
                      sent with msend -n) instead of a string of characters.\n\
         -v           Print version information.\n\
-        -h           Print the command usage.\n");
+        -h           Print the command usage.\n", VERSION);
 }
 
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in stLocal, stTo;
-	char achOut[BUFSIZE];
+	char achOut[BUFSIZE] = "";
 	int s, i;
 	struct ip_mreq stMreq;
 	int iTmp, iRet;
-	int ii;
-	int addr_size = sizeof (struct sockaddr_in);
+	int ii = 1;
+	int addr_size = sizeof(struct sockaddr_in);
 	struct itimerval times;
 	sigset_t sigset;
 	struct sigaction act;
-	siginfo_t si;
-
-/*
-  printf("argc = %d\n", argc);
-  if( argc < 2 ) {
-    printHelp(); 
-    return 1;
-  }
-*/
-	strcpy(achOut, "");
-
-/* not join */
-/*  join_flag = 0; 
-*/
-
-	ii = 1;
 
 	if ((argc == 2) && (strcmp(argv[ii], "-v") == 0)) {
 		printf("msend version 2.2\n");
@@ -188,7 +172,7 @@ int main(int argc, char *argv[])
 
 	/* avoid EADDRINUSE error on bind() */
 	iTmp = TRUE;
-	iRet = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&iTmp, sizeof (iTmp));
+	iRet = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&iTmp, sizeof(iTmp));
 	if (iRet == SOCKET_ERROR) {
 		printf("setsockopt() SO_REUSEADDR failed.\n");
 		exit(1);
@@ -198,7 +182,7 @@ int main(int argc, char *argv[])
 	stLocal.sin_family = AF_INET;
 	stLocal.sin_addr.s_addr = IP;
 	stLocal.sin_port = htons(TEST_PORT);
-	iRet = bind(s, (struct sockaddr *)&stLocal, sizeof (stLocal));
+	iRet = bind(s, (struct sockaddr *)&stLocal, sizeof(stLocal));
 	if (iRet == SOCKET_ERROR) {
 		printf("bind() failed.\n");
 		exit(1);
@@ -208,7 +192,7 @@ int main(int argc, char *argv[])
 	stMreq.imr_multiaddr.s_addr = inet_addr(TEST_ADDR);
 	stMreq.imr_interface.s_addr = IP;
 	if (join_flag == 1) {
-		iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof (stMreq));
+		iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof(stMreq));
 		if (iRet == SOCKET_ERROR) {
 			printf("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
 			exit(1);
@@ -217,7 +201,7 @@ int main(int argc, char *argv[])
 
 	/* set TTL to traverse up to multiple routers */
 	iTmp = TTL_VALUE;
-	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&iTmp, sizeof (iTmp));
+	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&iTmp, sizeof(iTmp));
 	if (iRet == SOCKET_ERROR) {
 		printf("setsockopt() IP_MULTICAST_TTL failed.\n");
 		exit(1);
@@ -225,7 +209,7 @@ int main(int argc, char *argv[])
 
 	/* enable loopback */
 	iTmp = TRUE;
-	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&iTmp, sizeof (iTmp));
+	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&iTmp, sizeof(iTmp));
 	if (iRet == SOCKET_ERROR) {
 		printf("setsockopt() IP_MULTICAST_LOOP failed.\n");
 		exit(1);
@@ -270,10 +254,10 @@ int main(int argc, char *argv[])
 		for (;;) {
 			sigsuspend(&sigset);
 		}
-		return;
+		return 0;
 	} else {
 		for (i = 0; i < 10; i++) {
-			int addr_size = sizeof (struct sockaddr_in);
+			int addr_size = sizeof(struct sockaddr_in);
 
 			if (NUM) {
 				achOut[3] = (unsigned char)(i >> 24);
@@ -296,14 +280,14 @@ int main(int argc, char *argv[])
 	return 0;
 }				/* end main() */
 
-void timerhandler(int sig, siginfo_t * siginfo, void *context)
+void timerhandler(void)
 {
 	int iRet;
 	static int iCounter = 1;
 
 	if (NUM) {
 		handler_par.achOut = (char *)(&iCounter);
-		handler_par.len = sizeof (iCounter);
+		handler_par.len = sizeof(iCounter);
 		printf("Send out msg %d to %s:%d\n", iCounter, TEST_ADDR, TEST_PORT);
 	} else {
 		printf("Send out msg %d to %s:%d: %s\n", iCounter, TEST_ADDR, TEST_PORT, handler_par.achOut);

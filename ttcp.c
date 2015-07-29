@@ -29,9 +29,7 @@
  *      Public Domain.  Distribution Unlimited.
  */
 /* Modified by Yvan Pointurier (yp9x), University of Virginia - May 2002 */
-#ifndef lint
-static char RCSid[] = "ttcp.c $Revision: 1.4 $";
-#endif
+/* Modified by Joachim Nilsson (troglobit), GitHub - Jul 2015 */
 
 #define BSD43
 /* #define BSD42 */
@@ -46,6 +44,7 @@ static char RCSid[] = "ttcp.c $Revision: 1.4 $";
 #include <signal.h>
 #include <ctype.h>
 #include <errno.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -69,7 +68,8 @@ struct sockaddr_in sinme;
 struct sockaddr_in sinhim;
 struct sockaddr_in frominet;
 
-int domain, fromlen;
+socklen_t fromlen;
+int domain;
 int fd;				/* fd of network socket */
 
 size_t buflen = 8 * 1024;	/* length of buffer */
@@ -151,7 +151,7 @@ static void mes(char *s)
 	fprintf(stderr, "ttcp%s: %s\n", trans ? "-t" : "-r", s);
 }
 
-static int pattern(char *cp, size_t cnt)
+static void pattern(char *cp, size_t cnt)
 {
 	char c = 0;
 
@@ -268,10 +268,10 @@ static void delay(int us)
 /*
  *			N W R I T E
  */
-static int Nwrite(int fd, char *buf, size_t len)
+static ssize_t Nwrite(int fd, char *buf, size_t len)
 {
 	int i;
-	size_t bytes;
+	ssize_t bytes;
 
 	if (rate > 0)
 		for (i = 0; i < rate * 100; i++) ;
@@ -288,6 +288,7 @@ static int Nwrite(int fd, char *buf, size_t len)
 		bytes = write(fd, buf, len);
 		numCalls++;
 	}
+
 	return bytes;
 }
 
@@ -477,7 +478,7 @@ int main(int argc, char *argv[])
 				err("accept");
 			} else {
 				struct sockaddr_in peer;
-				int peerlen = sizeof(peer);
+				socklen_t peerlen = sizeof(peer);
 
 				if (getpeername(fd, (struct sockaddr *)&peer, &peerlen) < 0)
 					err("getpeername");
@@ -491,7 +492,7 @@ int main(int argc, char *argv[])
 	errno = 0;
 
 	if (sinkmode) {
-		int cnt;
+		ssize_t cnt;
 
 		if (udp) {
 			int ret = 0;
@@ -508,7 +509,7 @@ int main(int argc, char *argv[])
 			pattern(buf, buflen);
 			if (udp)
 				Nwrite(fd, buf, 4);	/* rcvr start */
-			while (nbuf-- && Nwrite(fd, buf, buflen) == buflen)
+			while (nbuf-- && Nwrite(fd, buf, buflen) == (ssize_t)buflen)
 				nbytes += buflen;
 			if (udp)
 				Nwrite(fd, buf, 4);	/* rcvr end */
@@ -556,7 +557,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	} else {
-		size_t cnt;
+		ssize_t cnt;
 
 		if (trans) {
 			while ((cnt = read(0, buf, buflen)) > 0 && Nwrite(fd, buf, cnt) == cnt)
