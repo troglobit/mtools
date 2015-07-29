@@ -9,6 +9,9 @@
  * version 2.0 - 5/20/2002
  * version 2.1 - 12/4/2002
  *	Update version display. 
+ * version 2.2 - 05/17/2003
+ *      Assign default values to parameters . The usage information is 
+ *      changed according to README_mreceive.txt
  * 
  * Based on this public domain program:
  * u_mctest.c            (c) Bob Quinn           2/4/97
@@ -41,23 +44,28 @@
 #define LOOPMAX   20
 #define MAXIP     16
 
-char *TEST_ADDR;
-int TEST_PORT;
+char *TEST_ADDR = "224.1.1.1";
+int TEST_PORT = 4444;
 unsigned long IP[MAXIP]; 
 int NUM=0; 
 
 void printHelp(void) {
-      printf("mreceive version 2.1\nUsage: mreceive -g group -p port -i ip [-i ip ...] -n\n       mreceive -v\n\n\
-        -g group    specifies the IP multicast address of the group \n\
-                    to listen to.\n\
-        -p port     specifies the port number to listen to.\n\
-        -i ip       specifies the IP address of the interface to use \n\
-                    for reception.\n\
-                    (several -i options may be utilized)\n\
-        -n          interprets the contents of the message as a number\n\
-                    (messages sent with send -n) instead of a string of \n\
-                    characters.\n\
-        -v          Print version information.\n");
+      printf("mreceive version 2.2\n\
+Usage: mreceive [-g group] [-p port] [-i ip] ... [-i IP] [-n]\n\
+       mreceive [-v|-h]\n\n\
+        -g group     Specify the IP multicast address from which the packets are\n\
+                     received. The default group is 224.1.1.1.\n\
+        -p port      Specify the UDP port number used by the multicast group. The\n\
+                     default port number is 4444.\n\
+        -i ip ...    Specify the IP addresses of one or more interfaces to\n\
+                     receive multicast packets. The default value is INADDR_ANY which\n\
+		     implies that the default interface selected by the system will\n\
+		     be used.\n\
+        -n           Interpret the contents of the message as a number (messages\n\
+                     sent with msend -n) instead of a string of characters. It should\n\
+		     be specified while running msend with -n option.\n\
+        -v           Print version information.\n\
+        -h           Print the command usage.\n");
 }
 
 int main( int argc, char *argv[])
@@ -83,15 +91,21 @@ int main( int argc, char *argv[])
   struct timeval tv; 
 #endif
 
+/*
   if( argc < 2 ) {
     printHelp(); 
     return 1;
   }
+*/
 
   ii = 1;
 
-  if ( (strcmp(argv[ii], "-v") == 0) && ( argc == 2 ) ) {
-        printf("mreceive version 2.1\n");
+  if ( ( argc == 2 ) && (strcmp(argv[ii], "-v") == 0) ) {
+        printf("mreceive version 2.2\n");
+        return 0;
+  }
+  if ( ( argc == 2 ) && (strcmp(argv[ii], "-h") == 0) ) {
+        printHelp();
         return 0;
   }
 
@@ -99,25 +113,32 @@ int main( int argc, char *argv[])
   while (ii < argc) {
     if ( strcmp(argv[ii], "-g") == 0 ) {
         ii++;
-        TEST_ADDR = argv[ii];
-        ii++;
+        if ((ii < argc) && !(strchr(argv[ii],'-'))) {
+           TEST_ADDR = argv[ii];
+           ii++;
+        }
     }
     else if ( strcmp(argv[ii], "-p") == 0 ) {
         ii++;
-        TEST_PORT = atoi(argv[ii]);
-        ii++;
+        if ((ii < argc) && !(strchr(argv[ii],'-'))) {
+           TEST_PORT = atoi(argv[ii]);
+           ii++;
+        }
     } else if ( strcmp(argv[ii], "-i") == 0 ) {
         ii++; 
-        IP[ipnum] = inet_addr(argv[ii]); 
-        ii++; 
-        ipnum++; 
+        if ((ii < argc) && !(strchr(argv[ii],'-'))) {
+           IP[ipnum] = inet_addr(argv[ii]); 
+           ii++; 
+           ipnum++; 
+        }
     } else if ( strcmp(argv[ii], "-n") == 0 ) {
         ii++; 
         NUM=1; 
     }
     else {
+        printf("wrong parameters!\n\n");
         printHelp(); 
-        return 0;
+        return 1;
     }
   }
 
@@ -149,6 +170,7 @@ int main( int argc, char *argv[])
      sizeof(iTmp));
   if (iRet == SOCKET_ERROR) {
     printf ("setsockopt() SO_REUSEADDR failed.\n");
+    exit(1);
   }
 
   /* name the socket */
@@ -158,6 +180,7 @@ int main( int argc, char *argv[])
   iRet = bind(s, (struct sockaddr*) &stLocal, sizeof(stLocal));
   if (iRet == SOCKET_ERROR) {
     printf ("bind() failed.\n");
+    exit(1);
   }
 
   /* join the multicast group. */
@@ -171,6 +194,7 @@ int main( int argc, char *argv[])
        sizeof(stMreq));
     if (iRet == SOCKET_ERROR) {
       printf ("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
+      exit(1);
 	} 
   } else { 
     for(i=0;i<ipnum;i++) {
@@ -183,6 +207,7 @@ int main( int argc, char *argv[])
          sizeof(stMreq));
       if (iRet == SOCKET_ERROR) {
         printf ("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
+        exit(1);
       } 
     }
   }
@@ -196,10 +221,12 @@ int main( int argc, char *argv[])
      sizeof(iTmp));
   if (iRet == SOCKET_ERROR) {
     printf ("setsockopt() IP_MULTICAST_TTL failed.\n");
+    exit(1);
   }
 
-  /* enable loopback */
-  iTmp = TRUE;
+  /* disable loopback */
+  /* iTmp = TRUE; */
+  iTmp = FALSE;
   iRet = setsockopt(s, 
      IPPROTO_IP, 
      IP_MULTICAST_LOOP, 
@@ -207,6 +234,7 @@ int main( int argc, char *argv[])
      sizeof(iTmp));
   if (iRet == SOCKET_ERROR) {
     printf ("setsockopt() IP_MULTICAST_LOOP failed.\n");
+    exit(1);
   }
 
   /* assign our destination address */
@@ -229,7 +257,7 @@ int main( int argc, char *argv[])
       (struct sockaddr*)&stFrom, 
       &addr_size);
     if (iRet < 0) {
-      printf ("sendto() failed.\n");
+      printf ("recvfrom() failed.\n");
       exit(1);
     }
     
