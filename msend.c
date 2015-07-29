@@ -288,9 +288,9 @@ void timerhandler(void)
 	if (NUM) {
 		handler_par.achOut = (char *)(&iCounter);
 		handler_par.len = sizeof(iCounter);
-		printf("Send out msg %d to %s:%d\n", iCounter, TEST_ADDR, TEST_PORT);
+		printf("Sending msg %d, TTL %d, to %s:%d\n", iCounter, TTL_VALUE, TEST_ADDR, TEST_PORT);
 	} else {
-		printf("Send out msg %d to %s:%d: %s\n", iCounter, TEST_ADDR, TEST_PORT, handler_par.achOut);
+		printf("Sending msg %d, TTL %d, to %s:%d: %s\n", iCounter, TTL_VALUE, TEST_ADDR, TEST_PORT, handler_par.achOut);
 	}
 	iRet = sendto(handler_par.s, handler_par.achOut, handler_par.len, handler_par.n, handler_par.stTo, handler_par.addr_size);
 	if (iRet < 0) {
