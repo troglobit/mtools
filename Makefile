@@ -33,7 +33,7 @@ all: $(EXEC)
 
 .o:
 	@printf "  LINK    $@\n"
-	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ $^ $(LDLIBS$(LDLIBS-$(@)))
+	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ $< $(LDLIBS$(LDLIBS-$(@)))
 
 msend:    msend.o
 mreceive: mreceive.o
