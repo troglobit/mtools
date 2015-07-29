@@ -1,0 +1,55 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.Dd Jul 29, 2015 $
+.\" Please adjust this date whenever revising the manpage.
+.Dt MSEND 8 SMM
+.Os
+.Sh NAME
+.Nm mreceive
+.Nd receive UDP multicast messages and display them
+.Sh SYNOPSIS
+.Nm
+.Op Fl g Ar GROUP
+.Op Fl p Ar PORT
+.Op Fl i Ar ADDRESS
+.Op ...
+.Op Fl i Ar ADDRESS
+.Op Fl n
+.Nm
+.Op Fl v | Fl h
+.Sh DESCRIPTION
+Join a multicast group specified by the -g and -p options, receive and
+display the multicast packets sent to this group by the
+.Xr msend 8
+command.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl g Ar GROUP
+Specify the IP multicast address from which the packets are received.
+The default group is
+.Nm 224.1.1.1 .
+.It Fl p Ar PORT
+Specify the UDP port number used by the multicast group.  The default
+port number is
+.Nm 4444 .
+.It Fl i Ar ADDRESS
+Specify the IP addresses of one or more interfaces to receive multicast
+packets.  The default value is
+.Nm INADDR_ANY
+which implies that the default interface selected by the system will be
+used.
+.It Fl n
+Interpret the contents of the message as a number instead of a string of
+characters.  This option should be given when running
+.Nm msend
+with the
+.Fl n
+option.
+.It Fl v
+Print version information.
+.It Fl h
+Print the command usage.
+.Sh SEE ALSO
+.Xr msend 8
