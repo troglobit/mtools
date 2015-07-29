@@ -19,17 +19,11 @@
  */
 
 #include <stdio.h>
-#ifdef WIN32
-#include <stdlib.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
-#endif
 
 #define TRUE 1
 #define FALSE 0
@@ -82,14 +76,7 @@ int main( int argc, char *argv[])
   long rcvCountNew=1; 
   long starttime; 
   long curtime; 
-#ifdef WIN32
-  WSADATA stWSAData;
-  SYSTEMTIME tv; 
-#define tv_sec wSecond
-#define tv_usec wMilliseconds
-#else
   struct timeval tv; 
-#endif
 
 /*
   if( argc < 2 ) {
@@ -141,16 +128,6 @@ int main( int argc, char *argv[])
         return 1;
     }
   }
-
-
-#ifdef WIN32
-  /* Init WinSock */
-  i = WSAStartup(0x0202, &stWSAData);
-  if (i) {
-      printf ("WSAStartup failed: %d\r\n", i);
-      exit(1);
-  }
-#endif
 
   /* get a datagram socket */
   s = socket(AF_INET, 
@@ -262,11 +239,8 @@ int main( int argc, char *argv[])
     }
     
     if (NUM) {
-#ifdef WIN32
-      GetLocalTime(&tv); 
-#else
       gettimeofday(&tv, NULL); 
-#endif
+
       if (i==0)	starttime = tv.tv_sec * 1000000 + tv.tv_usec; 
       curtime = tv.tv_sec * 1000000 + tv.tv_usec - starttime; 
       numreceived=(unsigned long)achIn[0]+((unsigned long)(achIn[1])<<8)+((unsigned long)(achIn[2])<<16)+((unsigned long)(achIn[3])>>24); 

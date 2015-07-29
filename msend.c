@@ -20,19 +20,12 @@
  * 
  */
 #include <stdio.h>
-#ifdef WIN32
-#include <stdlib.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <signal.h> 
 #include <sys/time.h>
-#endif
-
 
 #define TRUE 1
 #define FALSE 0
@@ -54,7 +47,6 @@ int NUM=0;
 
 int join_flag = 0; /* not join */
 
-#ifndef WIN32
 typedef struct timerhandler_s {
 	int 	s; 
 	char    *achOut; 
@@ -65,7 +57,6 @@ typedef struct timerhandler_s {
 } timerhandler_t; 
 timerhandler_t handler_par; 
 void timerhandler(); 
-#endif
 
 void printHelp(void) { 
       printf("msend version 2.2\n\
@@ -104,14 +95,10 @@ int main( int argc, char *argv[])
   int iTmp, iRet;
   int ii;
   int addr_size = sizeof(struct sockaddr_in);
-#ifdef WIN32
-  WSADATA stWSAData;
-#else
   struct itimerval times;
   sigset_t sigset;
   struct sigaction act;
   siginfo_t si; 
-#endif
 
 /*
   printf("argc = %d\n", argc);
@@ -196,15 +183,6 @@ int main( int argc, char *argv[])
     }
   }
 
-#ifdef WIN32
-  /* Init WinSock */
-  i = WSAStartup(0x0202, &stWSAData);
-  if (i) {
-      printf ("WSAStartup failed: %d\r\n", i);
-      exit(1);
-  }
-#endif
-
   /* get a datagram socket */
   s = socket(AF_INET, 
      SOCK_DGRAM, 
@@ -279,106 +257,72 @@ int main( int argc, char *argv[])
   stTo.sin_family =      AF_INET;
   stTo.sin_addr.s_addr = inet_addr(TEST_ADDR);
   stTo.sin_port =        htons(TEST_PORT);
-  printf ("Now sending to multicast group: %s\n",
-    TEST_ADDR);
+  printf ("Now sending to multicast group: %s\n", TEST_ADDR);
 
-#ifdef WIN32
-  for (i=0;;i++) {
-    static iCounter = 1;
-
-    /* send to the multicast address */
-    if (NUM) {
-      achOut[3] = (unsigned char)(iCounter >>24); 
-      achOut[2] = (unsigned char)(iCounter >>16); 
-      achOut[1] = (unsigned char)(iCounter >>8); 
-      achOut[0] = (unsigned char)(iCounter ); 
-      printf("Send out msg %d to %s:% d\n", iCounter, TEST_ADDR, TEST_PORT);
-    } else {
-      printf("Send out msg %d to %s:%d: \"%s\"\n", iCounter, TEST_ADDR, TEST_PORT, achOut);
+  SLEEP_TIME*=1000; /* convert to microsecond */
+  if (SLEEP_TIME>0) {
+    /* block SIGALRM */
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGALRM);
+    sigprocmask(SIG_BLOCK, &sigset, NULL);
+	
+    /* set up handler for SIGALRM */
+    act.sa_handler = &timerhandler;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = SA_SIGINFO;
+    sigaction(SIGALRM, &act, NULL);
+    /*
+     * set up interval timer
+     */
+    times.it_value.tv_sec     = 0; /* wait a bit for system to "stabilize"  */
+    times.it_value.tv_usec    = 1; /* tv_sec or tv_usec cannot be both zero */
+    times.it_interval.tv_sec  = (time_t)(SLEEP_TIME/1000000); 
+    times.it_interval.tv_usec = (long)  (SLEEP_TIME%1000000); 
+    setitimer(ITIMER_REAL, &times, NULL); 
+	
+    handler_par.s 		= s;  
+    handler_par.achOut 	= achOut; 
+    handler_par.len 	= strlen(achOut)+1; 
+    handler_par.n 		= 0; 
+    handler_par.stTo 	= (struct sockaddr*)&stTo; 
+    handler_par.addr_size	= addr_size; 
+	
+    /* now wait for the alarms */
+    sigemptyset(&sigset);
+    for(;;) {
+      sigsuspend(&sigset);
     }
-
-    iRet = sendto(s, 
-      achOut, 
-      (NUM?4:strlen(achOut)+1), 
-      0,
-      (struct sockaddr*)&stTo, 
-      addr_size);
-    if (iRet < 0) {
-      printf ("sendto() failed.");
-      exit(1);
-    }
-
-    iCounter++;
-
-    Sleep(SLEEP_TIME);
-    
-  } /* end for(;;) */
-#else
-	SLEEP_TIME*=1000; /* convert to microsecond */
-	if (SLEEP_TIME>0) {
-		/* block SIGALRM */
-		sigemptyset(&sigset);
-		sigaddset(&sigset, SIGALRM);
-		sigprocmask(SIG_BLOCK, &sigset, NULL);
-	
-		/* set up handler for SIGALRM */
-		act.sa_handler = &timerhandler;
-		sigemptyset(&act.sa_mask);
-		act.sa_flags = SA_SIGINFO;
-		sigaction(SIGALRM, &act, NULL);
-		/*
-	 	 * set up interval timer
- 		 */
-		times.it_value.tv_sec     = 0; /* wait a bit for system to "stabilize"  */
-		times.it_value.tv_usec    = 1; /* tv_sec or tv_usec cannot be both zero */
-		times.it_interval.tv_sec  = (time_t)(SLEEP_TIME/1000000); 
-		times.it_interval.tv_usec = (long)  (SLEEP_TIME%1000000); 
-		setitimer(ITIMER_REAL, &times, NULL); 
-	
-		handler_par.s 		= s;  
-		handler_par.achOut 	= achOut; 
-		handler_par.len 	= strlen(achOut)+1; 
-		handler_par.n 		= 0; 
-		handler_par.stTo 	= (struct sockaddr*)&stTo; 
-		handler_par.addr_size	= addr_size; 
-	
-		/* now wait for the alarms */
-		sigemptyset(&sigset);
-		for(;;) {
-			sigsuspend(&sigset);
-		}
-		return; 
-	} else {
-		for (i=0;i<10;i++) {
-    			int addr_size = sizeof(struct sockaddr_in);
+    return; 
+  } else {
+    for (i=0;i<10;i++) {
+      int addr_size = sizeof(struct sockaddr_in);
 			
-			if (NUM) {
-				achOut[3] = (unsigned char)(i>>24); 
-				achOut[2] = (unsigned char)(i>>16); 
-				achOut[1] = (unsigned char)(i>>8); 
-				achOut[0] = (unsigned char)(i); 
-				printf("Send out msg %d to %s:%d\n", i, TEST_ADDR, TEST_PORT);
-			} else {
-				printf("Send out msg %d to %s:%d: %s\n", i, TEST_ADDR, TEST_PORT, achOut);
-			}
+      if (NUM) {
+	achOut[3] = (unsigned char)(i>>24); 
+	achOut[2] = (unsigned char)(i>>16); 
+	achOut[1] = (unsigned char)(i>>8); 
+	achOut[0] = (unsigned char)(i); 
+	printf("Send out msg %d to %s:%d\n", i, TEST_ADDR, TEST_PORT);
+      } else {
+	printf("Send out msg %d to %s:%d: %s\n", i, TEST_ADDR, TEST_PORT, achOut);
+      }
 			
-    			iRet = sendto(s, 
-      				achOut, 
-      				(NUM?4:strlen(achOut)+1), 
-      				0,
-      				(struct sockaddr*)&stTo, 
-      				addr_size);
-    			if (iRet < 0) {
-      			printf ("sendto() failed.\n");
-      			exit(1);
-    			}
-    		} /* end for(;;) */
-  	} 
-#endif
+      iRet = sendto(s, 
+		    achOut, 
+		    (NUM?4:strlen(achOut)+1), 
+		    0,
+		    (struct sockaddr*)&stTo, 
+		    addr_size);
+      if (iRet < 0) {
+	printf ("sendto() failed.\n");
+	exit(1);
+      }
+    } /* end for(;;) */
+  } 
+
   return 0; 
 } /* end main() */  
 
-#ifndef WIN32
 void timerhandler(int sig, siginfo_t *siginfo, void  *context) {
     int iRet; 
     static long iCounter = 1;
@@ -403,4 +347,3 @@ void timerhandler(int sig, siginfo_t *siginfo, void  *context) {
     iCounter++;
     return; 
 }
-#endif

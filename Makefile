@@ -1,10 +1,10 @@
 all: msend mreceive 
 
-msend: msend.source/msend.c
-	gcc -o msend msend.source/msend.c
+msend: msend.c
+	gcc -o msend msend.c
 
-mreceive: mreceive.source/mreceive.c
-	gcc -o mreceive mreceive.source/mreceive.c
+mreceive: mreceive.c
+	gcc -o mreceive mreceive.c
 
 clean:
 	rm -f msend mreceive
