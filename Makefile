@@ -25,16 +25,15 @@ DEPS       := $(EXEC:=.d)
 MANS        = $(addsuffix .8,$(EXEC))
 DISTFILES   = README.md LICENSE.md
 
-%.o: %.c
-	@printf "  CC      $(subst $(ROOTDIR)/,,$(shell pwd)/)$@\n"
+all: $(EXEC)
+
+.c.o:
+	@printf "  CC      $@\n"
 	@$(CC) $(CFLAGS) $(CPPFLAGS) -c -MMD -MP -o $@ $<
 
-%: %.o
-	@printf "  LINK    $(subst $(ROOTDIR)/,,$(shell pwd)/)$@\n"
+.o:
+	@printf "  LINK    $@\n"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ $^ $(LDLIBS$(LDLIBS-$(@)))
-
-
-all: $(EXEC)
 
 msend:    msend.o
 mreceive: mreceive.o
