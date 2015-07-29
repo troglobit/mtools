@@ -3,7 +3,7 @@
 
 # Figure out root of library, unless used as submodule
 ROOTDIR    ?= $(shell pwd)
-VERSION    ?= 2.3-rc1
+VERSION    ?= 2.3
 NAME        = mtools
 PKG         = $(NAME)-$(VERSION)
 ARCHIVE     = $(PKG).tar.gz
@@ -74,8 +74,12 @@ distclean: clean
 	@rm -f *.o *.d *~ *.map msend mreceive ttcp
 
 dist:
-	@echo "Building .xz tarball of $(PKG) in parent dir..."
-	@git archive --format=tar --prefix=$(PKG)/ v$(VERSION) | gz >../$(ARCHIVE)
+	@if [ -e ../$(ARCHIVE) ]; then \
+		echo "Distribution ../$(ARCHIVE) already exists."; \
+		exit 1; \
+	fi
+	@echo "Building .gz tarball of $(PKG) in parent dir..."
+	@git archive --format=tar --prefix=$(PKG)/ v$(VERSION) | gzip >../$(ARCHIVE)
 	@(cd ..; md5sum $(ARCHIVE) | tee $(ARCHIVE).md5)
 
 # Include automatically generated rules
