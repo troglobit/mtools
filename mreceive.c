@@ -19,6 +19,8 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -71,11 +73,11 @@ int main( int argc, char *argv[])
   int iTmp, iRet;
   int ipnum=0; 
   int ii;
-  unsigned long numreceived; 
-  long rcvCountOld=0; 
-  long rcvCountNew=1; 
-  long starttime; 
-  long curtime; 
+  unsigned int numreceived; 
+  int rcvCountOld=0; 
+  int rcvCountNew=1; 
+  int starttime; 
+  int curtime; 
   struct timeval tv; 
 
 /*
@@ -243,7 +245,7 @@ int main( int argc, char *argv[])
 
       if (i==0)	starttime = tv.tv_sec * 1000000 + tv.tv_usec; 
       curtime = tv.tv_sec * 1000000 + tv.tv_usec - starttime; 
-      numreceived=(unsigned long)achIn[0]+((unsigned long)(achIn[1])<<8)+((unsigned long)(achIn[2])<<16)+((unsigned long)(achIn[3])>>24); 
+      numreceived=(unsigned int)achIn[0]+((unsigned int)(achIn[1])<<8)+((unsigned int)(achIn[2])<<16)+((unsigned int)(achIn[3])>>24); 
       fprintf(stdout, "%5d\t%s:%5d\t%d.%03d\t%5d\n",
         iCounter, 
         inet_ntoa(stFrom.sin_addr), 

@@ -19,7 +19,10 @@
  * u_mctest.c            (c) Bob Quinn           2/4/97
  * 
  */
+
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -81,7 +84,7 @@ Usage:  msend [-g group] [-p port] [-join] [-i IP] [-t ttl] [-P period]\n\
                      and is displayed by the mreceive command. The default value\n\
                      is empty string.\n\
         -n           Interpret the contents of the message as a number (messages\n\
-                     sent with msend -n) instead of a string of characters.\n\ 
+                     sent with msend -n) instead of a string of characters.\n\
         -v           Print version information.\n\
         -h           Print the command usage.\n");
 }
@@ -325,7 +328,7 @@ int main( int argc, char *argv[])
 
 void timerhandler(int sig, siginfo_t *siginfo, void  *context) {
     int iRet; 
-    static long iCounter = 1;
+    static int iCounter = 1;
 
     if (NUM) {
       handler_par.achOut = (char *)(&iCounter); 
