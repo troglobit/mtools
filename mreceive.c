@@ -48,21 +48,17 @@ int NUM = 0;
 void printHelp(void)
 {
 	printf("mreceive version %s\n\
-Usage: mreceive [-g group] [-p port] [-i ip] ... [-i IP] [-n]\n\
-       mreceive [-v|-h]\n\n\
-        -g group     Specify the IP multicast address from which the packets are\n\
-                     received. The default group is 224.1.1.1.\n\
-        -p port      Specify the UDP port number used by the multicast group. The\n\
-                     default port number is 4444.\n\
-        -i ip ...    Specify the IP addresses of one or more interfaces to\n\
-                     receive multicast packets. The default value is INADDR_ANY which\n\
-		     implies that the default interface selected by the system will\n\
-		     be used.\n\
-        -n           Interpret the contents of the message as a number (messages\n\
-                     sent with msend -n) instead of a string of characters. It should\n\
-		     be specified while running msend with -n option.\n\
-        -v           Print version information.\n\
-        -h           Print the command usage.\n", VERSION);
+Usage: mreceive [-g GROUP] [-p PORT] [-i ADDRESS ] ... [-i ADDRESS] [-n]\n\
+       mreceive [-v | -h]\n\
+\n\
+  -g GROUP     IP multicast group address to listen to.  Default: 224.1.1.1\n\
+  -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
+  -i ADDRESS   IP addresses of one or more interfaces to listen for the given\n\
+               multicast group.  Default: the system default interface.\n\
+  -n           Interpret the contents of the message as a number instead of\n\
+               a string of characters.  Use this with `msend -n`\n\
+  -v           Print version information.\n\
+  -h           Print the command usage.\n\n", VERSION);
 }
 
 int main(int argc, char *argv[])

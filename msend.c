@@ -64,30 +64,25 @@ void timerhandler();
 void printHelp(void)
 {
 	printf("msend version %s\n\
-Usage:  msend [-g group] [-p port] [-join] [-i IP] [-t ttl] [-P period]\n\
+Usage:  msend [-g GROUP] [-p PORT] [-join] [-i ADDRESS] [-t TTL] [-P PERIOD]\n\
 	      [-text \"text\"|-n]\n\
-	msend [-v|-h]\n\n\
-        -g group     Specify the IP multicast address to which the packets are\n\
-		     sent. The default group is 224.1.1.1.\n\
-        -p port      Specify the UDP port number used by the multicast group.\n\
-		     The default port number is 4444.\n\
-        -join        Multicast sender will join join the multicast group. By\n\
-		     default, a multicast sender does not join the group.\n\
-        -t ttl       Specify the ttl value in the message. The default value\n\
-		     is 1.\n\
-        -i IP        Specify the IP address of the interface to be used to send\n\
-		     the packets. The default value is INADDR_ANY which implies\n\
-		     that the the default interface selected by the system will\n\
-		     be used.\n\
-        -P period    Specify the interval in milliseconds between two transmitted\n\
-		     packets. The default value is 1000 milliseconds.\n\
-        -text \"text\" Specify a string which is sent as the payload of the packets \n\
-                     and is displayed by the mreceive command. The default value\n\
-                     is empty string.\n\
-        -n           Interpret the contents of the message as a number (messages\n\
-                     sent with msend -n) instead of a string of characters.\n\
-        -v           Print version information.\n\
-        -h           Print the command usage.\n", VERSION);
+	msend [-v | -h]\n\
+\n\
+  -g GROUP     IP multicast group address to send to.  Default: 224.1.1.1\n\
+  -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
+  -i ADDRESS   IP address of the interface to use to send the packets.\n\
+               The default is to use the system default interface.\n\
+  -join        Multicast sender will join the multicast group.\n\
+               By default a sender never joins the group.\n\
+  -P PERIOD    Interval in milliseconds between packets.  Default 1000 msec\n\
+  -t TTL       The TTL value (1-255) used in the packets.  You must set\n\
+               this higher if you want to route the traffic, otherwise\n\
+               the first router will drop the packets!  Default: 1\n\
+  -text \"text\" Specify a string to use as payload in the packets, also\n\
+               displayed by the mreceive command.  Default: empty\n\
+  -n           Encode -text argument as a number instead of a string.\n\
+  -v           Print version information.\n\
+  -h           Print the command usage.\n\n", VERSION);
 }
 
 int main(int argc, char *argv[])
