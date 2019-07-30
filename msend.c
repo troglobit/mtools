@@ -44,7 +44,7 @@
 char *TEST_ADDR = "224.1.1.1";
 int TEST_PORT = 4444;
 int TTL_VALUE = 1;
-int SLEEP_TIME = 1000;
+int SLEEP_TIME = 1;
 unsigned long IP = INADDR_ANY;
 int NUM = 0;
 
@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
 	stTo.sin_port = htons(TEST_PORT);
 	printf("Now sending to multicast group: %s\n", TEST_ADDR);
 
-	SLEEP_TIME *= 1000;	/* convert to microsecond */
+	SLEEP_TIME = 1000000/SLEEP_TIME;	/* convert to microsecond */
 	if (SLEEP_TIME > 0) {
 		/* block SIGALRM */
 		sigemptyset(&sigset);
