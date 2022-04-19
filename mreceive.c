@@ -23,6 +23,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
@@ -61,7 +62,7 @@ Usage: mreceive [-g GROUP] [-p PORT] [-i ADDRESS ] ... [-i ADDRESS] [-n]\n\
   -h           Print the command usage.\n\n", VERSION);
 }
 
-static void igmp_join(int s, in_addr_t multiaddr, in_addr_t interface)
+static void igmp_join_by_saddr(int s, in_addr_t multiaddr, in_addr_t interface)
 {
 	struct ip_mreq mreq;
 	int ret;
@@ -77,10 +78,34 @@ static void igmp_join(int s, in_addr_t multiaddr, in_addr_t interface)
 	}
 }
 
+static void igmp_join_by_if_name(int s, in_addr_t multicast,
+				 const char *if_name)
+{
+	struct ip_mreqn mreq = {};
+	int if_index;
+	int ret;
+
+	if_index = if_nametoindex(if_name);
+	if (!if_index) {
+		perror("if_nametoindex");
+		exit(1);
+	}
+
+	mreq.imr_multiaddr.s_addr = multicast;
+	mreq.imr_ifindex = if_index;
+
+	ret = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+	if (ret) {
+		perror("setsockopt() IP_ADD_MEMBERSHIP");
+		exit(1);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in stLocal, stFrom;
 	unsigned char achIn[BUFSIZE];
+	const char *if_name;
 	int s, i;
 	int iTmp, iRet;
 	int ipnum = 0;
@@ -131,6 +156,17 @@ int main(int argc, char *argv[])
 				ii++;
 				ipnum++;
 			}
+		} else if (strcmp(argv[ii], "-I") == 0) {
+			ii++;
+			if (ii < argc) {
+				if (if_name) {
+					printf("Single interface expected\n");
+					exit(1);
+				}
+
+				if_name = argv[ii];
+				ii++;
+			}
 		} else if (strcmp(argv[ii], "-n") == 0) {
 			ii++;
 			NUM = 1;
@@ -167,11 +203,16 @@ int main(int argc, char *argv[])
 	}
 
 	/* join the multicast group. */
-	if (!ipnum) {		/* single interface */
-		igmp_join(s, inet_addr(TEST_ADDR), INADDR_ANY);
+	if (if_name) {
+		igmp_join_by_if_name(s, inet_addr(TEST_ADDR), if_name);
 	} else {
-		for (i = 0; i < ipnum; i++) {
-			igmp_join(s, inet_addr(TEST_ADDR), IP[i]);
+		if (!ipnum) {		/* single interface */
+			igmp_join_by_saddr(s, inet_addr(TEST_ADDR), INADDR_ANY);
+		} else {
+			for (i = 0; i < ipnum; i++) {
+				igmp_join_by_saddr(s, inet_addr(TEST_ADDR),
+						   IP[i]);
+			}
 		}
 	}
 
