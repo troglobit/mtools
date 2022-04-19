@@ -61,12 +61,27 @@ Usage: mreceive [-g GROUP] [-p PORT] [-i ADDRESS ] ... [-i ADDRESS] [-n]\n\
   -h           Print the command usage.\n\n", VERSION);
 }
 
+static void igmp_join(int s, in_addr_t multiaddr, in_addr_t interface)
+{
+	struct ip_mreq mreq;
+	int ret;
+
+	mreq.imr_multiaddr.s_addr = multiaddr;
+	mreq.imr_interface.s_addr = interface;
+
+	ret = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+			 (char *)&mreq, sizeof(mreq));
+	if (ret == SOCKET_ERROR) {
+		printf("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
+		exit(1);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in stLocal, stFrom;
 	unsigned char achIn[BUFSIZE];
 	int s, i;
-	struct ip_mreq stMreq;
 	int iTmp, iRet;
 	int ipnum = 0;
 	int ii;
@@ -153,22 +168,10 @@ int main(int argc, char *argv[])
 
 	/* join the multicast group. */
 	if (!ipnum) {		/* single interface */
-		stMreq.imr_multiaddr.s_addr = inet_addr(TEST_ADDR);
-		stMreq.imr_interface.s_addr = INADDR_ANY;
-		iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof(stMreq));
-		if (iRet == SOCKET_ERROR) {
-			printf("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
-			exit(1);
-		}
+		igmp_join(s, inet_addr(TEST_ADDR), INADDR_ANY);
 	} else {
 		for (i = 0; i < ipnum; i++) {
-			stMreq.imr_multiaddr.s_addr = inet_addr(TEST_ADDR);
-			stMreq.imr_interface.s_addr = IP[i];
-			iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof(stMreq));
-			if (iRet == SOCKET_ERROR) {
-				printf("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
-				exit(1);
-			}
+			igmp_join(s, inet_addr(TEST_ADDR), IP[i]);
 		}
 	}
 
