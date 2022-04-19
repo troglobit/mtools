@@ -35,7 +35,7 @@ all: $(EXEC)
 	@printf "  LINK    $@\n"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ $^ $(LDLIBS$(LDLIBS-$(@)))
 
-msend:    msend.o
+msend:    msend.o common.o
 mreceive: mreceive.o common.o
 ttcp:     ttcp.o
 

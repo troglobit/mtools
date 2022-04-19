@@ -30,7 +30,8 @@ int ip_address_parse(const char *string, struct ip_address *ip)
 	return 0;
 }
 
-int socket_create(struct sock *s, int family, int port)
+int socket_create(struct sock *s, int family, int port,
+		  struct ip_address *saddr, const char *if_name)
 {
 	struct sockaddr *serv_addr;
 	int sockopt = 1;
@@ -40,13 +41,16 @@ int socket_create(struct sock *s, int family, int port)
 
 	if (family == AF_INET) {
 		serv_addr = (struct sockaddr *)&s->udp4;
-		s->udp4.sin_addr.s_addr = htonl(INADDR_ANY);
+		s->udp4.sin_addr = saddr ? saddr->addr :
+				   (struct in_addr) {
+					.s_addr = htonl(INADDR_ANY),
+				   };
 		s->udp4.sin_port = htons(port);
 		s->udp4.sin_family = AF_INET;
 		s->addr_size = sizeof(struct sockaddr_in);
 	} else {
 		serv_addr = (struct sockaddr *)&s->udp6;
-		s->udp6.sin6_addr = in6addr_any;
+		s->udp6.sin6_addr = saddr ? saddr->addr6 : in6addr_any;
 		s->udp6.sin6_port = htons(port);
 		s->udp6.sin6_family = AF_INET6;
 		s->addr_size = sizeof(struct sockaddr_in6);
@@ -66,11 +70,22 @@ int socket_create(struct sock *s, int family, int port)
 		return ret;
 	}
 
-	ret = bind(fd, serv_addr, s->addr_size);
-	if (ret) {
-		perror("bind");
-		close(fd);
-		return ret;
+	if (if_name) {
+		/* Bind to device, required for IPv6 link-local addresses */
+		ret = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, if_name,
+				 IFNAMSIZ - 1);
+		if (ret) {
+			perror("setsockopt() SO_BINDTODEVICE");
+			close(fd);
+			return ret;
+		}
+	} else {
+		ret = bind(fd, serv_addr, s->addr_size);
+		if (ret) {
+			perror("bind");
+			close(fd);
+			return ret;
+		}
 	}
 
 	s->fd = fd;
@@ -248,6 +263,12 @@ int mc_recv(struct sock *s, void *buf, size_t len, struct sock *from)
 			&from->addr_size);
 }
 
+int mc_send(struct sock *s, struct sock *to, void *buf, size_t len)
+{
+	return sendto(s->fd, buf, len, 0, (struct sockaddr *)&(to->udp4),
+		      s->addr_size);
+}
+
 int socket_get_port(const struct sock *s)
 {
 	switch (s->addr_size) {
@@ -258,4 +279,29 @@ int socket_get_port(const struct sock *s)
 	default:
 		return 0;
 	}
+}
+
+int socket_set_loopback(struct sock *s, int loop)
+{
+	int fd = s->fd;
+	int ret;
+
+	switch (s->addr_size) {
+	case sizeof(struct sockaddr_in):
+		ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
+				 sizeof(int));
+		if (ret)
+			perror("setsockopt IP_MULTICAST_LOOP");
+		break;
+	case sizeof(struct sockaddr_in6):
+		ret = setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &loop,
+				 sizeof(int));
+		if (ret)
+			perror("setsockopt IPV6_MULTICAST_LOOP");
+		break;
+	default:
+		return 0;
+	}
+
+	return ret;
 }

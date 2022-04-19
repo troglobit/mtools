@@ -30,6 +30,8 @@
 #include <signal.h>
 #include <sys/time.h>
 
+#include "common.h"
+
 #define TRUE 1
 #define FALSE 0
 #ifndef INVALID_SOCKET
@@ -45,18 +47,16 @@ char *TEST_ADDR = "224.1.1.1";
 int TEST_PORT = 4444;
 int TTL_VALUE = 1;
 int SLEEP_TIME = 1000;
-unsigned long IP = INADDR_ANY;
 int NUM = 0;
 
 int join_flag = 0;		/* not join */
 
 typedef struct timerhandler_s {
-	int s;
+	struct sock *s;
+	struct sock *to;
 	char *achOut;
 	int len;
 	int n;
-	struct sockaddr *stTo;
-	int addr_size;
 } timerhandler_t;
 timerhandler_t handler_par;
 void timerhandler();
@@ -87,16 +87,15 @@ Usage:  msend [-g GROUP] [-p PORT] [-join] [-i ADDRESS] [-t TTL] [-P PERIOD]\n\
 
 int main(int argc, char *argv[])
 {
-	struct sockaddr_in stLocal, stTo;
+	struct ip_address *saddr = NULL, mc;
+	struct sock s = {}, to = {};
+	const char *if_name = NULL;
 	char achOut[BUFSIZE] = "";
-	int s, i;
-	struct ip_mreq stMreq;
-	int iTmp, iRet;
 	int ii = 1;
-	int addr_size = sizeof(struct sockaddr_in);
 	struct itimerval times;
 	sigset_t sigset;
 	struct sigaction act;
+	int ret, i;
 
 	if ((argc == 2) && (strcmp(argv[ii], "-v") == 0)) {
 		printf("msend version 2.2\n");
@@ -126,7 +125,32 @@ int main(int argc, char *argv[])
 		} else if (strcmp(argv[ii], "-i") == 0) {
 			ii++;
 			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				IP = inet_addr(argv[ii]);
+				if (saddr) {
+					printf("Single source address allowed\n");
+					exit(1);
+				}
+
+				saddr = calloc(1, sizeof(*saddr));
+				if (!saddr) {
+					printf("Low memory\n");
+					exit(1);
+				}
+
+				ret = ip_address_parse(argv[ii], saddr);
+				if (ret)
+					exit(1);
+
+				ii++;
+			}
+		} else if (strcmp(argv[ii], "-I") == 0) {
+			ii++;
+			if (ii < argc) {
+				if (if_name) {
+					printf("Single interface expected\n");
+					exit(1);
+				}
+
+				if_name = argv[ii];
 				ii++;
 			}
 		} else if (strcmp(argv[ii], "-t") == 0) {
@@ -158,62 +182,50 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	ret = ip_address_parse(TEST_ADDR, &mc);
+	if (ret)
+		exit(1);
+
+	if (join_flag && mc.family == AF_INET6 && !if_name) {
+		printf("-I is mandatory when joining IPv6 group\n");
+		exit(1);
+	}
+
 	/* get a datagram socket */
-	s = socket(AF_INET, SOCK_DGRAM, 0);
-	if (s == INVALID_SOCKET) {
-		printf("socket() failed.\n");
+	ret = socket_create(&s, mc.family, TEST_PORT, saddr, if_name);
+	if (ret)
 		exit(1);
-	}
-
-	/* avoid EADDRINUSE error on bind() */
-	iTmp = TRUE;
-	iRet = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&iTmp, sizeof(iTmp));
-	if (iRet == SOCKET_ERROR) {
-		printf("setsockopt() SO_REUSEADDR failed.\n");
-		exit(1);
-	}
-
-	/* name the socket */
-	stLocal.sin_family = AF_INET;
-	stLocal.sin_addr.s_addr = IP;
-	stLocal.sin_port = htons(TEST_PORT);
-	iRet = bind(s, (struct sockaddr *)&stLocal, sizeof(stLocal));
-	if (iRet == SOCKET_ERROR) {
-		printf("bind() failed.\n");
-		exit(1);
-	}
 
 	/* join the multicast group. */
-	stMreq.imr_multiaddr.s_addr = inet_addr(TEST_ADDR);
-	stMreq.imr_interface.s_addr = IP;
 	if (join_flag == 1) {
-		iRet = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&stMreq, sizeof(stMreq));
-		if (iRet == SOCKET_ERROR) {
-			printf("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
+		ret = mc_join(&s, &mc, if_name, 0, NULL);
+		if (ret)
 			exit(1);
-		}
 	}
 
 	/* set TTL to traverse up to multiple routers */
-	iTmp = TTL_VALUE;
-	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&iTmp, sizeof(iTmp));
-	if (iRet == SOCKET_ERROR) {
-		printf("setsockopt() IP_MULTICAST_TTL failed.\n");
+	ret = mc_set_hop_limit(&s, TTL_VALUE);
+	if (ret)
 		exit(1);
-	}
 
 	/* enable loopback */
-	iTmp = TRUE;
-	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&iTmp, sizeof(iTmp));
-	if (iRet == SOCKET_ERROR) {
-		printf("setsockopt() IP_MULTICAST_LOOP failed.\n");
+	ret = socket_set_loopback(&s, 1);
+	if (ret)
 		exit(1);
-	}
 
 	/* assign our destination address */
-	stTo.sin_family = AF_INET;
-	stTo.sin_addr.s_addr = inet_addr(TEST_ADDR);
-	stTo.sin_port = htons(TEST_PORT);
+	if (mc.family == AF_INET) {
+		to.udp4.sin_addr = mc.addr;
+		to.udp4.sin_port = htons(TEST_PORT);
+		to.udp4.sin_family = AF_INET;
+		to.addr_size = sizeof(struct sockaddr_in);
+	} else {
+		to.udp6.sin6_addr = mc.addr6;
+		to.udp6.sin6_port = htons(TEST_PORT);
+		to.udp6.sin6_family = AF_INET6;
+		to.addr_size = sizeof(struct sockaddr_in6);
+	}
+
 	printf("Now sending to multicast group: %s\n", TEST_ADDR);
 
 	SLEEP_TIME *= 1000;	/* convert to microsecond */
@@ -237,12 +249,11 @@ int main(int argc, char *argv[])
 		times.it_interval.tv_usec = (long)(SLEEP_TIME % 1000000);
 		setitimer(ITIMER_REAL, &times, NULL);
 
-		handler_par.s = s;
+		handler_par.s = &s;
+		handler_par.to = &to;
 		handler_par.achOut = achOut;
 		handler_par.len = strlen(achOut) + 1;
 		handler_par.n = 0;
-		handler_par.stTo = (struct sockaddr *)&stTo;
-		handler_par.addr_size = addr_size;
 
 		/* now wait for the alarms */
 		sigemptyset(&sigset);
@@ -252,8 +263,6 @@ int main(int argc, char *argv[])
 		return 0;
 	} else {
 		for (i = 0; i < 10; i++) {
-			int addr_size = sizeof(struct sockaddr_in);
-
 			if (NUM) {
 				achOut[3] = (unsigned char)(i >> 24);
 				achOut[2] = (unsigned char)(i >> 16);
@@ -264,9 +273,10 @@ int main(int argc, char *argv[])
 				printf("Send out msg %d to %s:%d: %s\n", i, TEST_ADDR, TEST_PORT, achOut);
 			}
 
-			iRet = sendto(s, achOut, (NUM ? 4 : strlen(achOut) + 1), 0, (struct sockaddr *)&stTo, addr_size);
-			if (iRet < 0) {
-				printf("sendto() failed.\n");
+			ret = mc_send(&s, &to, achOut,
+				      NUM ? 4 : strlen(achOut) + 1);
+			if (ret < 0) {
+				perror("sendto");
 				exit(1);
 			}
 		}		/* end for(;;) */
@@ -277,8 +287,8 @@ int main(int argc, char *argv[])
 
 void timerhandler(void)
 {
-	int iRet;
 	static int iCounter = 1;
+	int ret;
 
 	if (NUM) {
 		handler_par.achOut = (char *)(&iCounter);
@@ -287,11 +297,14 @@ void timerhandler(void)
 	} else {
 		printf("Sending msg %d, TTL %d, to %s:%d: %s\n", iCounter, TTL_VALUE, TEST_ADDR, TEST_PORT, handler_par.achOut);
 	}
-	iRet = sendto(handler_par.s, handler_par.achOut, handler_par.len, handler_par.n, handler_par.stTo, handler_par.addr_size);
-	if (iRet < 0) {
-		printf("sendto() failed.\n");
+
+	ret = mc_send(handler_par.s, handler_par.to, handler_par.achOut,
+		      handler_par.len);
+	if (ret < 0) {
+		perror("sendto");
 		exit(1);
 	}
+
 	iCounter++;
 	return;
 }

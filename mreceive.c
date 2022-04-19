@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* get a datagram socket */
-	ret = socket_create(&s, mc.family, TEST_PORT);
+	ret = socket_create(&s, mc.family, TEST_PORT, NULL, NULL);
 	if (ret)
 		exit(1);
 

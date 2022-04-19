@@ -26,11 +26,14 @@ struct sock {
 };
 
 int ip_address_parse(const char *string, struct ip_address *ip);
-int socket_create(struct sock *s, int family, int port);
+int socket_create(struct sock *s, int family, int port,
+		  struct ip_address *saddr, const char *if_name);
 int mc_join(struct sock *s, const struct ip_address *mc, const char *if_name,
 	    int num_saddrs, struct ip_address *saddrs);
 int mc_set_hop_limit(struct sock *s, int limit);
 int mc_recv(struct sock *s, void *buf, size_t len, struct sock *from);
+int mc_send(struct sock *s, struct sock *to, void *buf, size_t len);
 int socket_get_port(const struct sock *s);
+int socket_set_loopback(struct sock *s, int loop);
 
 #endif
