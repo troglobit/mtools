@@ -28,6 +28,8 @@
 #include <arpa/inet.h>
 #include <sys/time.h>
 
+#include "common.h"
+
 #define TRUE 1
 #define FALSE 0
 #ifndef INVALID_SOCKET
@@ -43,7 +45,7 @@
 
 char *TEST_ADDR = "224.1.1.1";
 int TEST_PORT = 4444;
-unsigned long IP[MAXIP];
+struct ip_address IP[MAXIP];
 int NUM = 0;
 
 void printHelp(void)
@@ -62,52 +64,12 @@ Usage: mreceive [-g GROUP] [-p PORT] [-i ADDRESS ] ... [-i ADDRESS] [-n]\n\
   -h           Print the command usage.\n\n", VERSION);
 }
 
-static void igmp_join_by_saddr(int s, in_addr_t multiaddr, in_addr_t interface)
-{
-	struct ip_mreq mreq;
-	int ret;
-
-	mreq.imr_multiaddr.s_addr = multiaddr;
-	mreq.imr_interface.s_addr = interface;
-
-	ret = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-			 (char *)&mreq, sizeof(mreq));
-	if (ret == SOCKET_ERROR) {
-		printf("setsockopt() IP_ADD_MEMBERSHIP failed.\n");
-		exit(1);
-	}
-}
-
-static void igmp_join_by_if_name(int s, in_addr_t multicast,
-				 const char *if_name)
-{
-	struct ip_mreqn mreq = {};
-	int if_index;
-	int ret;
-
-	if_index = if_nametoindex(if_name);
-	if (!if_index) {
-		perror("if_nametoindex");
-		exit(1);
-	}
-
-	mreq.imr_multiaddr.s_addr = multicast;
-	mreq.imr_ifindex = if_index;
-
-	ret = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
-	if (ret) {
-		perror("setsockopt() IP_ADD_MEMBERSHIP");
-		exit(1);
-	}
-}
-
 int main(int argc, char *argv[])
 {
-	struct sockaddr_in stLocal, stFrom;
 	unsigned char achIn[BUFSIZE];
-	const char *if_name;
-	int s, i;
-	int iTmp, iRet;
+	const char *if_name = NULL;
+	struct ip_address mc;
+	struct sock s, from;
 	int ipnum = 0;
 	int ii;
 	unsigned int numreceived;
@@ -116,6 +78,8 @@ int main(int argc, char *argv[])
 	int starttime;
 	int curtime;
 	struct timeval tv;
+	int ret;
+	int i;
 
 /*
   if( argc < 2 ) {
@@ -152,7 +116,10 @@ int main(int argc, char *argv[])
 		} else if (strcmp(argv[ii], "-i") == 0) {
 			ii++;
 			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				IP[ipnum] = inet_addr(argv[ii]);
+				ret = ip_address_parse(argv[ii], &IP[ipnum]);
+				if (ret)
+					exit(1);
+
 				ii++;
 				ipnum++;
 			}
@@ -177,73 +144,59 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	ret = ip_address_parse(TEST_ADDR, &mc);
+	if (ret)
+		exit(1);
+
+	if (mc.family == AF_INET6 && ipnum) {
+		printf("Joining IPv6 groups by source address not supported, use -I\n");
+		exit(1);
+	}
+
+	if (mc.family == AF_INET6 && !if_name) {
+		printf("-I is mandatory with IPv6\n");
+		exit(1);
+	}
+
 	/* get a datagram socket */
-	s = socket(AF_INET, SOCK_DGRAM, 0);
-	if (s == INVALID_SOCKET) {
-		printf("socket() failed.\n");
+	ret = socket_create(&s, mc.family, TEST_PORT);
+	if (ret)
 		exit(1);
-	}
-
-	/* avoid EADDRINUSE error on bind() */
-	iTmp = TRUE;
-	iRet = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&iTmp, sizeof(iTmp));
-	if (iRet == SOCKET_ERROR) {
-		printf("setsockopt() SO_REUSEADDR failed.\n");
-		exit(1);
-	}
-
-	/* name the socket */
-	stLocal.sin_family = AF_INET;
-	stLocal.sin_addr.s_addr = htonl(INADDR_ANY);
-	stLocal.sin_port = htons(TEST_PORT);
-	iRet = bind(s, (struct sockaddr *)&stLocal, sizeof(stLocal));
-	if (iRet == SOCKET_ERROR) {
-		printf("bind() failed.\n");
-		exit(1);
-	}
 
 	/* join the multicast group. */
-	if (if_name) {
-		igmp_join_by_if_name(s, inet_addr(TEST_ADDR), if_name);
-	} else {
-		if (!ipnum) {		/* single interface */
-			igmp_join_by_saddr(s, inet_addr(TEST_ADDR), INADDR_ANY);
-		} else {
-			for (i = 0; i < ipnum; i++) {
-				igmp_join_by_saddr(s, inet_addr(TEST_ADDR),
-						   IP[i]);
-			}
-		}
-	}
+	ret = mc_join(&s, &mc, if_name, ipnum, IP);
+	if (ret)
+		exit(1);
 
 	/* set TTL to traverse up to multiple routers */
-	iTmp = TTL_VALUE;
-	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&iTmp, sizeof(iTmp));
-	if (iRet == SOCKET_ERROR) {
-		printf("setsockopt() IP_MULTICAST_TTL failed.\n");
+	ret = mc_set_hop_limit(&s, TTL_VALUE);
+	if (ret)
 		exit(1);
-	}
-
-	/* disable loopback */
-	/* iTmp = TRUE; */
-	iTmp = FALSE;
-	iRet = setsockopt(s, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&iTmp, sizeof(iTmp));
-	if (iRet == SOCKET_ERROR) {
-		printf("setsockopt() IP_MULTICAST_LOOP failed.\n");
-		exit(1);
-	}
 
 	printf("Now receiving from multicast group: %s\n", TEST_ADDR);
 
 	for (i = 0;; i++) {
-		socklen_t addr_size = sizeof(struct sockaddr_in);
+		char from_buf[INET6_ADDRSTRLEN];
 		static int iCounter = 1;
+		const char *addr_str;
 
 		/* receive from the multicast address */
 
-		iRet = recvfrom(s, achIn, BUFSIZE, 0, (struct sockaddr *)&stFrom, &addr_size);
-		if (iRet < 0) {
-			printf("recvfrom() failed.\n");
+		ret = mc_recv(&s, achIn, BUFSIZE, &from);
+		if (ret < 0) {
+			perror("recvfrom");
+			exit(1);
+		}
+
+		if (mc.family == AF_INET) {
+			addr_str = inet_ntop(AF_INET, &from.udp4.sin_addr,
+					     from_buf, INET6_ADDRSTRLEN);
+		} else {
+			addr_str = inet_ntop(AF_INET6, &from.udp6.sin6_addr,
+					     from_buf, INET6_ADDRSTRLEN);
+		}
+		if (!addr_str) {
+			perror("inet_ntop");
 			exit(1);
 		}
 
@@ -256,7 +209,8 @@ int main(int argc, char *argv[])
 			numreceived =
 			    (unsigned int)achIn[0] + ((unsigned int)(achIn[1]) << 8) + ((unsigned int)(achIn[2]) << 16) +
 			    ((unsigned int)(achIn[3]) >> 24);
-			fprintf(stdout, "%5d\t%s:%5d\t%d.%03d\t%5d\n", iCounter, inet_ntoa(stFrom.sin_addr), ntohs(stFrom.sin_port),
+			fprintf(stdout, "%5d\t%s:%5d\t%d.%03d\t%5d\n", iCounter,
+				from_buf, socket_get_port(&from),
 				curtime / 1000000, (curtime % 1000000) / 1000, numreceived);
 			fflush(stdout);
 			rcvCountNew = numreceived;
@@ -276,7 +230,7 @@ int main(int argc, char *argv[])
 			rcvCountOld = rcvCountNew;
 		} else {
 			printf("Receive msg %d from %s:%d: %s\n",
-			       iCounter, inet_ntoa(stFrom.sin_addr), ntohs(stFrom.sin_port), achIn);
+			       iCounter, from_buf, socket_get_port(&from), achIn);
 		}
 		iCounter++;
 	}
