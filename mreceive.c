@@ -58,6 +58,8 @@ Usage: mreceive [-g GROUP] [-p PORT] [-i ADDRESS ] ... [-i ADDRESS] [-n]\n\
   -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
   -i ADDRESS   IP addresses of one or more interfaces to listen for the given\n\
                multicast group.  Default: the system default interface.\n\
+  -I interface The interface on which to receive. Can be specified as an\n\
+               alternative to -i.\n\
   -n           Interpret the contents of the message as a number instead of\n\
                a string of characters.  Use this with `msend -n`\n\
   -v           Print version information.\n\

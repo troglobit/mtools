@@ -72,6 +72,8 @@ Usage:  msend [-g GROUP] [-p PORT] [-join] [-i ADDRESS] [-t TTL] [-P PERIOD]\n\
   -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
   -i ADDRESS   IP address of the interface to use to send the packets.\n\
                The default is to use the system default interface.\n\
+  -I interface The interface on which to send. Can be specified as an\n\
+               alternative to -i.\n\
   -join        Multicast sender will join the multicast group.\n\
                By default a sender never joins the group.\n\
   -P PERIOD    Interval in milliseconds between packets.  Default 1000 msec\n\
