@@ -56,7 +56,7 @@ typedef struct timerhandler_s {
 	struct sock *to;
 	char *achOut;
 	int len;
-	int n;
+	int num_pkts;
 } timerhandler_t;
 timerhandler_t handler_par;
 void timerhandler();
@@ -82,6 +82,7 @@ Usage:  msend [-g GROUP] [-p PORT] [-join] [-i ADDRESS] [-t TTL] [-P PERIOD]\n\
                the first router will drop the packets!  Default: 1\n\
   -text \"text\" Specify a string to use as payload in the packets, also\n\
                displayed by the mreceive command.  Default: empty\n\
+  -c           Number of packets to send. Default: send indefinitely\n\
   -n           Encode -text argument as a number instead of a string.\n\
   -v           Print version information.\n\
   -h           Print the command usage.\n\n", VERSION);
@@ -97,6 +98,7 @@ int main(int argc, char *argv[])
 	struct itimerval times;
 	sigset_t sigset;
 	struct sigaction act;
+	int num_pkts = 0;
 	int ret, i;
 
 	if ((argc == 2) && (strcmp(argv[ii], "-v") == 0)) {
@@ -171,6 +173,12 @@ int main(int argc, char *argv[])
 			ii++;
 			NUM = 1;
 			ii++;
+		} else if (strcmp(argv[ii], "-c") == 0) {
+			ii++;
+			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
+				num_pkts = atoi(argv[ii]);
+				ii++;
+			}
 		} else if (strcmp(argv[ii], "-text") == 0) {
 			ii++;
 			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
@@ -255,7 +263,7 @@ int main(int argc, char *argv[])
 		handler_par.to = &to;
 		handler_par.achOut = achOut;
 		handler_par.len = strlen(achOut) + 1;
-		handler_par.n = 0;
+		handler_par.num_pkts = num_pkts;
 
 		/* now wait for the alarms */
 		sigemptyset(&sigset);
@@ -264,7 +272,7 @@ int main(int argc, char *argv[])
 		}
 		return 0;
 	} else {
-		for (i = 0; i < 10; i++) {
+		for (i = 0; num_pkts && i < num_pkts; i++) {
 			if (NUM) {
 				achOut[3] = (unsigned char)(i >> 24);
 				achOut[2] = (unsigned char)(i >> 16);
@@ -306,6 +314,9 @@ void timerhandler(void)
 		perror("sendto");
 		exit(1);
 	}
+
+	if (iCounter == handler_par.num_pkts)
+		exit(1);
 
 	iCounter++;
 	return;
