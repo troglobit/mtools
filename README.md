@@ -15,9 +15,9 @@ multicast setups.
 ## SYNOPSIS
 
 	msend [-g GROUP] [-p PORT] [-join] [-t TTL] [-i ADDRESS] [-P PERIOD]
-	      [-text "text" | -n]
+	      [-I INTERFACE] [-text "text" | -n]
 	msend [-v|-h]
-	mreceive [-g group] [-p port] [-i ip] ... [-i ip] [-n]
+	mreceive [-g group] [-p port] [-i ip] ... [-i ip] [-I INTERFACE] [-n]
 	mreceive [-v|-h]
 
 ## DESCRIPTION
@@ -34,7 +34,8 @@ group:port combination by the `msend` command.
 * `-g GROUP`
 
   Specify the IP multicast group address to which packets are sent, or
-  received.  The default group is 224.1.1.1.
+  received.  The default group is 224.1.1.1 for IPv4 and FF02::1:1 for
+  IPv6.
 
 * `-p PORT`
 
@@ -58,6 +59,11 @@ group:port combination by the `msend` command.
   For `mreceive` one or more interfaces can be given.  The default value
   is `INADDR_ANY` which implies that the default interface selected by
   the system will be used.
+
+* `-I INTERFACE`
+
+  Specify the interface to send on. Can be specified as an alternative
+  to -i.
 
 * `-P PERIOD`
 
@@ -83,4 +89,3 @@ group:port combination by the `msend` command.
 * `-h`
 
   Print the command usage.
-
