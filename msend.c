@@ -96,12 +96,13 @@ void timer_cb(int signo)
 void usage(void)
 {
 	printf("\
-Usage:  msend [-hnv] [-c NUM] [-g GROUP] [-p PORT] [-join] [-i ADDRESS]\n\
+Usage:  msend [-46hnv] [-c NUM] [-g GROUP] [-p PORT] [-join] [-i ADDRESS]\n\
 	      [-I INTERFACE] [-P PERIOD] [-t TTL] [-text \"text\"]\n\
 \n\
+  -4 | -6      Select IPv4 or IPv6, use with -I, when -i is not used\n\
   -c NUM       Number of packets to send. Default: send indefinitely\n\
   -g GROUP     IP multicast group address to send to.\n\
-               Default: IPv4: 224.1.1.1, IPv6: ff2e::1\n\
+               Default for IPv4: 224.1.1.1, IPv6: ff2e::1\n\
   -h           This help text.\n\
   -i ADDRESS   IP address of the interface to use to send the packets.\n \
                The default is to use the system default interface.\n\
@@ -125,10 +126,11 @@ int main(int argc, char *argv[])
 	struct ip_address *saddr = NULL, mc;
 	struct sock s = {}, to = {};
 	const char *if_name = NULL;
-	char buf[BUFSIZE] = "";
+	char buf[BUFSIZE] = { 0 };
 	struct itimerval times;
-	sigset_t sigset;
 	struct sigaction act;
+	int family = AF_INET;
+	sigset_t sigset;
 	int num_pkts = 0;
 	int opt = 1;
 	int ret, i;
@@ -143,7 +145,13 @@ int main(int argc, char *argv[])
 	}
 
 	while (opt < argc) {
-		if (strcmp(argv[opt], "-g") == 0) {
+		if (strcmp(argv[opt], "-4") == 0) {
+			family = AF_INET; /* for completeness */
+			opt++;
+		} else if (strcmp(argv[opt], "-6") == 0) {
+			family = AF_INET6;
+			opt++;
+		} else if (strcmp(argv[opt], "-g") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
 				TEST_ADDR = argv[opt];
@@ -175,7 +183,7 @@ int main(int argc, char *argv[])
 				ret = ip_address_parse(argv[opt], saddr);
 				if (ret)
 					exit(1);
-
+				family = saddr->family;
 				opt++;
 			}
 		} else if (strcmp(argv[opt], "-I") == 0) {
@@ -204,7 +212,6 @@ int main(int argc, char *argv[])
 		} else if (strcmp(argv[opt], "-n") == 0) {
 			opt++;
 			NUM = 1;
-			opt++;
 		} else if (strcmp(argv[opt], "-c") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
@@ -225,9 +232,9 @@ int main(int argc, char *argv[])
 	}
 
 	if (TEST_ADDR == NULL) {
-		if (saddr->family == AF_INET)
+		if (family == AF_INET)
 			TEST_ADDR = TEST_ADDR_IPV4;
-		else if(saddr->family == AF_INET6)
+		else if (family == AF_INET6)
 			TEST_ADDR = TEST_ADDR_IPV6;
 		else
 			exit(1);

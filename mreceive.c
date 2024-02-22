@@ -42,8 +42,10 @@
 #define TTL_VALUE 2
 #define LOOPMAX   20
 #define MAXIP     16
+#define TEST_ADDR_IPV4 "224.1.1.1"
+#define TEST_ADDR_IPV6 "ff2e::1"
 
-char *TEST_ADDR = "224.1.1.1";
+char *TEST_ADDR = NULL;
 int TEST_PORT = 4444;
 struct ip_address IP[MAXIP];
 int NUM = 0;
@@ -51,10 +53,12 @@ int NUM = 0;
 void usage(void)
 {
 	printf("\
-Usage: mreceive [-hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
+Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
                 [-p PORT]\n\
 \n\
-  -g GROUP     IP multicast group address to listen to.  Default: 224.1.1.1\n\
+  -4 | -6      Select IPv4 or IPv6, use with -I, when -i is not used\n\
+  -g GROUP     IP multicast group address to listen to.\n\
+               Default for IPv4: 224.1.1.1, IPv6: ff2e::1\n\
   -h           This help text.\n\
   -i ADDRESS   IP addresses of one or more interfaces to listen for the given\n\
                multicast group.  Default: the system default interface.\n\
@@ -70,16 +74,16 @@ int main(int argc, char *argv[])
 {
 	unsigned char buf[BUFSIZE];
 	const char *if_name = NULL;
-	struct ip_address mc;
-	struct sock s, from;
-	int ipnum = 0;
-	int opt = 1;
 	unsigned int numreceived;
+	struct ip_address mc;
+	int family = AF_INET;
+	struct sock s, from;
 	int rcvCountOld = 0;
 	int rcvCountNew = 1;
-	int starttime;
-	int curtime;
 	struct timeval tv;
+	int starttime;
+	int ipnum = 0;
+	int opt = 1;
 	int ret;
 	int i;
 
@@ -94,7 +98,13 @@ int main(int argc, char *argv[])
 
 
 	while (opt < argc) {
-		if (strcmp(argv[opt], "-g") == 0) {
+		if (strcmp(argv[opt], "-4") == 0) {
+			family = AF_INET; /* for completeness */
+			opt++;
+		} else if (strcmp(argv[opt], "-6") == 0) {
+			family = AF_INET6;
+			opt++;
+		} else if (strcmp(argv[opt], "-g") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
 				TEST_ADDR = argv[opt];
@@ -113,6 +123,7 @@ int main(int argc, char *argv[])
 				if (ret)
 					exit(1);
 
+				family = IP[ipnum].family;
 				opt++;
 				ipnum++;
 			}
@@ -135,6 +146,15 @@ int main(int argc, char *argv[])
 			usage();
 			return 1;
 		}
+	}
+
+	if (TEST_ADDR == NULL) {
+		if (family == AF_INET)
+			TEST_ADDR = TEST_ADDR_IPV4;
+		else if (family == AF_INET6)
+			TEST_ADDR = TEST_ADDR_IPV6;
+		else
+			exit(1);
 	}
 
 	ret = ip_address_parse(TEST_ADDR, &mc);
@@ -194,6 +214,8 @@ int main(int argc, char *argv[])
 		}
 
 		if (NUM) {
+			int curtime;
+
 			gettimeofday(&tv, NULL);
 
 			if (i == 0)
