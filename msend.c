@@ -44,7 +44,7 @@
 #define BUFSIZE   1024
 
 #define TEST_ADDR_IPV4 "224.1.1.1"
-#define TEST_ADDR_IPV6 "FF02::1:1"
+#define TEST_ADDR_IPV6 "ff2e::1"
 
 char *TEST_ADDR = NULL;
 int TEST_PORT = 4444;
@@ -72,7 +72,7 @@ Usage:  msend [-g GROUP] [-p PORT] [-join] [-i ADDRESS] [-t TTL] [-P PERIOD]\n\
 	msend [-v | -h]\n\
 \n\
   -g GROUP     IP multicast group address to send to.\n\
-               Default: IPv4: 224.1.1.1, IPv6: FF02::1:1\n\
+               Default: IPv4: 224.1.1.1, IPv6: ff2e::1\n\
   -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
   -i ADDRESS   IP address of the interface to use to send the packets.\n\
                The default is to use the system default interface.\n\

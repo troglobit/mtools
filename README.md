@@ -38,7 +38,7 @@ group:port combination by the `msend` command.
 * `-g GROUP`
 
   Specify the IP multicast group address to which packets are sent, or
-  received.  The default group is 224.1.1.1 for IPv4 and FF02::1:1 for
+  received.  The default group is 224.1.1.1 for IPv4 and ff2e::1 for
   IPv6.
 
 * `-p PORT`
