@@ -43,7 +43,10 @@
 #define LOOPMAX   20
 #define BUFSIZE   1024
 
-char *TEST_ADDR = "224.1.1.1";
+#define TEST_ADDR_IPV4 "224.1.1.1"
+#define TEST_ADDR_IPV6 "FF02::1:1"
+
+char *TEST_ADDR = NULL;
 int TEST_PORT = 4444;
 int TTL_VALUE = 1;
 int SLEEP_TIME = 1000;
@@ -68,7 +71,8 @@ Usage:  msend [-g GROUP] [-p PORT] [-join] [-i ADDRESS] [-t TTL] [-P PERIOD]\n\
 	      [-text \"text\"|-n]\n\
 	msend [-v | -h]\n\
 \n\
-  -g GROUP     IP multicast group address to send to.  Default: 224.1.1.1\n\
+  -g GROUP     IP multicast group address to send to.\n\
+               Default: IPv4: 224.1.1.1, IPv6: FF02::1:1\n\
   -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
   -i ADDRESS   IP address of the interface to use to send the packets.\n\
                The default is to use the system default interface.\n\
@@ -190,6 +194,15 @@ int main(int argc, char *argv[])
 			printHelp();
 			return 1;
 		}
+	}
+
+	if(TEST_ADDR == NULL) {
+		if(saddr->family == AF_INET)
+			TEST_ADDR = TEST_ADDR_IPV4;
+		else if(saddr->family == AF_INET6)
+			TEST_ADDR = TEST_ADDR_IPV6;
+		else
+			exit(1);
 	}
 
 	ret = ip_address_parse(TEST_ADDR, &mc);
