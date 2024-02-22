@@ -31,6 +31,21 @@ group:port combination by the `msend` command.
 
 ## OPTIONS
 
+- `-4`
+
+  Select IPv4 test group, use with `-I` when not using `-i` or any
+  group.  This is the default.  See `-6` for an example.
+
+- `-6`
+
+  Select IPv6 test group, use with `-I` when not using `-i` or any
+  group.  Example:
+
+        $ msend -6 -I eth0
+        Now sending to multicast group: ff2e::1
+        Sending msg 1, TTL 1, to ff2e::1:4444:
+        ...
+
 - `-c NUM`
 
   Number of packets to send, default: unlimited.

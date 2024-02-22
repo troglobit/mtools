@@ -11,7 +11,7 @@
 .Nd send UDP messages to a multicast group
 .Sh SYNOPSIS
 .Nm
-.Op Fl hnv
+.Op Fl 46hnv
 .Op Fl c Ar NUM
 .Op Fl g Ar GROUP
 .Op Fl join
@@ -29,6 +29,20 @@ and
 options.
 .Sh OPTIONS
 .Bl -tag -width Ds
+.It Fl 4
+Select IPv4 test group, use with
+.Fl I Ar IFACE
+when not using
+.Fl i Ar ADDR
+or any
+.Fl g Ar GROUP .
+This is the default.
+.It Fl 6
+Select IPv6 test group when not using
+.Fi i
+or
+.Fl g .
+For an example, see below.
 .It Fl c Ar NUM
 Limit number of packets to send, default: unlimited.
 .It Fl g Ar GROUP
@@ -74,5 +88,16 @@ Print version information.
 .It Fl h
 Print the command usage.
 .El
+.Sh EXAMPLE
+.Bd -literal -offset left
+$ msend -6 -I eth0
+Now sending to multicast group: ff2e::1
+Sending msg 1, TTL 1, to ff2e::1:4444:
+Sending msg 2, TTL 1, to ff2e::1:4444:
+Sending msg 3, TTL 1, to ff2e::1:4444:
+Sending msg 4, TTL 1, to ff2e::1:4444:
+Sending msg 5, TTL 1, to ff2e::1:4444:
+...
+.Ed
 .Sh SEE ALSO
 .Xr mreceive 8

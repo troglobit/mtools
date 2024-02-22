@@ -11,7 +11,7 @@
 .Nd receive UDP multicast messages and display them
 .Sh SYNOPSIS
 .Nm
-.Op Fl hnv
+.Op Fl 46hnv
 .Op Fl g Ar GROUP
 .Op Fl i Ar ADDRESS
 .Op ...
@@ -29,6 +29,20 @@ group:port by the
 command.
 .Sh OPTIONS
 .Bl -tag -width Ds
+.It Fl 4
+Select IPv4 test group, use with
+.Fl I Ar IFACE
+when not using
+.Fl i Ar ADDR
+or any
+.Fl g Ar GROUP .
+This is the default.
+.It Fl 6
+Select IPv6 test group when not using
+.Fi i
+or
+.Fl g .
+For an example, see below.
 .It Fl g Ar GROUP
 Specify the IP multicast address from which the packets are received.
 The default group is
@@ -58,5 +72,15 @@ option.
 Print version information.
 .It Fl h
 Print the command usage.
+.Sh EXAMPLE
+.Bd -literal -offset left
+$ mreceive -6 -I eth0
+Now receiving from multicast group: ff2e::1
+Receive msg 1 from 2001:9b0:214:3500::c2e:37801:
+Receive msg 2 from 2001:9b0:214:3500::c2e:37801:
+Receive msg 3 from 2001:9b0:214:3500::c2e:37801:
+Receive msg 4 from 2001:9b0:214:3500::c2e:37801:
+^C
+.Ed
 .Sh SEE ALSO
 .Xr msend 8
