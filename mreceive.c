@@ -48,22 +48,22 @@ int TEST_PORT = 4444;
 struct ip_address IP[MAXIP];
 int NUM = 0;
 
-void printHelp(void)
+void usage(void)
 {
-	printf("mreceive version %s\n\
-Usage: mreceive [-g GROUP] [-p PORT] [-i ADDR] ... [-i ADDR] [-I INTERFACE] [-n]\n\
-       mreceive [-v | -h]\n\
+	printf("\
+Usage: mreceive [-hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
+                [-p PORT]\n\
 \n\
   -g GROUP     IP multicast group address to listen to.  Default: 224.1.1.1\n\
-  -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
+  -h           This help text.\n\
   -i ADDRESS   IP addresses of one or more interfaces to listen for the given\n\
                multicast group.  Default: the system default interface.\n\
   -I INTERFACE The interface on which to receive. Can be specified as an\n\
                alternative to -i.\n\
   -n           Interpret the contents of the message as a number instead of\n\
                a string of characters.  Use this with `msend -n`\n\
-  -v           Print version information.\n\
-  -h           Print the command usage.\n\n", VERSION);
+  -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
+  -v           Print version information.\n\n");
 }
 
 int main(int argc, char *argv[])
@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 
 /*
   if( argc < 2 ) {
-    printHelp(); 
+    usage(); 
     return 1;
   }
 */
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	if ((argc == 2) && (strcmp(argv[ii], "-h") == 0)) {
-		printHelp();
+		usage();
 		return 0;
 	}
 
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 			NUM = 1;
 		} else {
 			printf("wrong parameters!\n\n");
-			printHelp();
+			usage();
 			return 1;
 		}
 	}

@@ -64,32 +64,31 @@ typedef struct timerhandler_s {
 timerhandler_t handler_par;
 void timerhandler();
 
-void printHelp(void)
+void usage(void)
 {
-	printf("msend version %s\n\
-Usage:  msend [-g GROUP] [-p PORT] [-join] [-i ADDRESS] [-t TTL] [-P PERIOD]\n\
-	      [-I INTERFACE] [-c NUM] [-text \"text\"|-n]\n\
-	msend [-v | -h]\n\
+	printf("\
+Usage:  msend [-hnv] [-c NUM] [-g GROUP] [-p PORT] [-join] [-i ADDRESS]\n\
+	      [-I INTERFACE] [-P PERIOD] [-t TTL] [-text \"text\"]\n\
 \n\
+  -c NUM       Number of packets to send. Default: send indefinitely\n\
   -g GROUP     IP multicast group address to send to.\n\
                Default: IPv4: 224.1.1.1, IPv6: ff2e::1\n\
-  -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
-  -i ADDRESS   IP address of the interface to use to send the packets.\n\
+  -h           This help text.\n\
+  -i ADDRESS   IP address of the interface to use to send the packets.\n \
                The default is to use the system default interface.\n\
   -I INTERFACE The interface on which to send. Can be specified as an\n\
                alternative to -i.\n\
   -join        Multicast sender will join the multicast group.\n\
                By default a sender never joins the group.\n\
+  -n           Encode -text argument as a number instead of a string.\n\
+  -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
   -P PERIOD    Interval in milliseconds between packets.  Default 1000 msec\n\
   -t TTL       The TTL value (1-255) used in the packets.  You must set\n\
                this higher if you want to route the traffic, otherwise\n\
                the first router will drop the packets!  Default: 1\n\
   -text \"text\" Specify a string to use as payload in the packets, also\n\
                displayed by the mreceive command.  Default: empty\n\
-  -c NUM       Number of packets to send. Default: send indefinitely\n\
-  -n           Encode -text argument as a number instead of a string.\n\
-  -v           Print version information.\n\
-  -h           Print the command usage.\n\n", VERSION);
+  -v           Print version information.\n\n");
 }
 
 int main(int argc, char *argv[])
@@ -110,7 +109,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	if ((argc == 2) && (strcmp(argv[ii], "-h") == 0)) {
-		printHelp();
+		usage();
 		return 0;
 	}
 
@@ -191,7 +190,7 @@ int main(int argc, char *argv[])
 			}
 		} else {
 			printf("wrong parameters!\n\n");
-			printHelp();
+			usage();
 			return 1;
 		}
 	}

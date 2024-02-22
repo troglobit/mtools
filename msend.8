@@ -11,17 +11,16 @@
 .Nd send UDP messages to a multicast group
 .Sh SYNOPSIS
 .Nm
+.Op Fl hnv
 .Op Fl c Ar NUM
 .Op Fl g Ar GROUP
-.Op Fl p Ar PORT
 .Op Fl join
-.Op Fl t Ar TTL
 .Op Fl i Ar ADDRESS
 .Op Fl I Ar INTERFACE
+.Op Fl p Ar PORT
 .Op Fl P Ar PERIOD
-.Op Fl text Ar 'text' | Fl n
-.Nm
-.Op Fl v | Fl h
+.Op Fl t Ar TTL
+.Op Fl text Ar 'text'
 .Sh DESCRIPTION
 Continuously send UDP packets to the multicast group specified by the
 .Fl g
