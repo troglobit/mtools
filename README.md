@@ -1,6 +1,6 @@
 
-This is a cleaned up version of mtools from the University of Virginia's
-Multimedia Networks Group <http://www.cs.virginia.edu/~mngroup/software/>
+This is a cleaned up version of mtools from the [University of Virginia's
+Multimedia Networks Group][1], with added IPv6 support.
 
 The tools `msend` and `mreceive` can be particulary useful when debugging
 multicast setups.
@@ -89,3 +89,5 @@ group:port combination by the `msend` command.
 * `-h`
 
   Print the command usage.
+
+[1]: http://www.cs.virginia.edu/~mngroup/software/
