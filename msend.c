@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 	int ret, i;
 
 	if ((argc == 2) && (strcmp(argv[ii], "-v") == 0)) {
-		printf("msend version 2.2\n");
+		printf("msend version %s\n", VERSION);
 		return 0;
 	}
 	if ((argc == 2) && (strcmp(argv[ii], "-h") == 0)) {

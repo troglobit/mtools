@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 	ii = 1;
 
 	if ((argc == 2) && (strcmp(argv[ii], "-v") == 0)) {
-		printf("mreceive version 2.2\n");
+		printf("mreceive version %s\n", VERSION);
 		return 0;
 	}
 	if ((argc == 2) && (strcmp(argv[ii], "-h") == 0)) {
