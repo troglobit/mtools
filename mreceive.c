@@ -68,7 +68,7 @@ Usage: mreceive [-hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
 
 int main(int argc, char *argv[])
 {
-	unsigned char achIn[BUFSIZE];
+	unsigned char buf[BUFSIZE];
 	const char *if_name = NULL;
 	struct ip_address mc;
 	struct sock s, from;
@@ -179,12 +179,12 @@ int main(int argc, char *argv[])
 
 	for (i = 0;; i++) {
 		char from_buf[INET6_ADDRSTRLEN];
-		static int iCounter = 1;
+		static int counter = 1;
 		const char *addr_str;
 
 		/* receive from the multicast address */
 
-		ret = mc_recv(&s, achIn, BUFSIZE, &from);
+		ret = mc_recv(&s, buf, BUFSIZE, &from);
 		if (ret < 0) {
 			perror("recvfrom");
 			exit(1);
@@ -209,9 +209,9 @@ int main(int argc, char *argv[])
 				starttime = tv.tv_sec * 1000000 + tv.tv_usec;
 			curtime = tv.tv_sec * 1000000 + tv.tv_usec - starttime;
 			numreceived =
-			    (unsigned int)achIn[0] + ((unsigned int)(achIn[1]) << 8) + ((unsigned int)(achIn[2]) << 16) +
-			    ((unsigned int)(achIn[3]) >> 24);
-			fprintf(stdout, "%5d\t%s:%5d\t%d.%03d\t%5d\n", iCounter,
+			    (unsigned int)buf[0] + ((unsigned int)(buf[1]) << 8) + ((unsigned int)(buf[2]) << 16) +
+			    ((unsigned int)(buf[3]) >> 24);
+			fprintf(stdout, "%5d\t%s:%5d\t%d.%03d\t%5u\n", counter,
 				from_buf, socket_get_port(&from),
 				curtime / 1000000, (curtime % 1000000) / 1000, numreceived);
 			fflush(stdout);
@@ -231,10 +231,9 @@ int main(int argc, char *argv[])
 			}
 			rcvCountOld = rcvCountNew;
 		} else {
-			printf("Receive msg %d from %s:%d: %s\n",
-			       iCounter, from_buf, socket_get_port(&from), achIn);
+			printf("Receive msg %d from %s:%d: %s\n", counter, from_buf, socket_get_port(&from), buf);
 		}
-		iCounter++;
+		counter++;
 	}
 
 	return 0;

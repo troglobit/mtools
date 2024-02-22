@@ -54,15 +54,44 @@ int NUM = 0;
 
 int join_flag = 0;		/* not join */
 
-typedef struct timerhandler_s {
+typedef struct {
 	struct sock *s;
 	struct sock *to;
-	char *achOut;
+	char *buf;
 	int len;
 	int num_pkts;
-} timerhandler_t;
-timerhandler_t handler_par;
-void timerhandler();
+} param_t;
+
+param_t param;
+
+
+void timer_cb(int signo)
+{
+	static int counter = 1;
+	int ret;
+
+	(void)signo;
+
+	if (NUM) {
+		param.buf = (char *)(&counter);
+		param.len = sizeof(counter);
+		printf("Sending msg %d, TTL %d, to %s:%d\n", counter, TTL_VALUE, TEST_ADDR, TEST_PORT);
+	} else {
+		printf("Sending msg %d, TTL %d, to %s:%d: %s\n", counter, TTL_VALUE, TEST_ADDR, TEST_PORT, param.buf);
+	}
+
+	ret = mc_send(param.s, param.to, param.buf,
+		      param.len);
+	if (ret < 0) {
+		perror("sendto");
+		exit(1);
+	}
+
+	if (counter == param.num_pkts)
+		exit(1);
+
+	counter++;
+}
 
 void usage(void)
 {
@@ -96,7 +125,7 @@ int main(int argc, char *argv[])
 	struct ip_address *saddr = NULL, mc;
 	struct sock s = {}, to = {};
 	const char *if_name = NULL;
-	char achOut[BUFSIZE] = "";
+	char buf[BUFSIZE] = "";
 	int ii = 1;
 	struct itimerval times;
 	sigset_t sigset;
@@ -185,7 +214,7 @@ int main(int argc, char *argv[])
 		} else if (strcmp(argv[ii], "-text") == 0) {
 			ii++;
 			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				strcpy(achOut, argv[ii]);
+				strcpy(buf, argv[ii]);
 				ii++;
 			}
 		} else {
@@ -258,7 +287,7 @@ int main(int argc, char *argv[])
 		sigprocmask(SIG_BLOCK, &sigset, NULL);
 
 		/* set up handler for SIGALRM */
-		act.sa_handler = &timerhandler;
+		act.sa_handler = &timer_cb;
 		sigemptyset(&act.sa_mask);
 		act.sa_flags = SA_SIGINFO;
 		sigaction(SIGALRM, &act, NULL);
@@ -271,11 +300,11 @@ int main(int argc, char *argv[])
 		times.it_interval.tv_usec = (long)(SLEEP_TIME % 1000000);
 		setitimer(ITIMER_REAL, &times, NULL);
 
-		handler_par.s = &s;
-		handler_par.to = &to;
-		handler_par.achOut = achOut;
-		handler_par.len = strlen(achOut) + 1;
-		handler_par.num_pkts = num_pkts;
+		param.s = &s;
+		param.to = &to;
+		param.buf = buf;
+		param.len = strlen(buf) + 1;
+		param.num_pkts = num_pkts;
 
 		/* now wait for the alarms */
 		sigemptyset(&sigset);
@@ -286,52 +315,25 @@ int main(int argc, char *argv[])
 	} else {
 		for (i = 0; num_pkts && i < num_pkts; i++) {
 			if (NUM) {
-				achOut[3] = (unsigned char)(i >> 24);
-				achOut[2] = (unsigned char)(i >> 16);
-				achOut[1] = (unsigned char)(i >> 8);
-				achOut[0] = (unsigned char)(i);
+				buf[3] = (unsigned char)(i >> 24);
+				buf[2] = (unsigned char)(i >> 16);
+				buf[1] = (unsigned char)(i >> 8);
+				buf[0] = (unsigned char)(i);
 				printf("Send out msg %d to %s:%d\n", i, TEST_ADDR, TEST_PORT);
 			} else {
-				printf("Send out msg %d to %s:%d: %s\n", i, TEST_ADDR, TEST_PORT, achOut);
+				printf("Send out msg %d to %s:%d: %s\n", i, TEST_ADDR, TEST_PORT, buf);
 			}
 
-			ret = mc_send(&s, &to, achOut,
-				      NUM ? 4 : strlen(achOut) + 1);
+			ret = mc_send(&s, &to, buf,
+				      NUM ? 4 : strlen(buf) + 1);
 			if (ret < 0) {
 				perror("sendto");
 				exit(1);
 			}
-		}		/* end for(;;) */
+		}
 	}
 
 	return 0;
-}				/* end main() */
-
-void timerhandler(void)
-{
-	static int iCounter = 1;
-	int ret;
-
-	if (NUM) {
-		handler_par.achOut = (char *)(&iCounter);
-		handler_par.len = sizeof(iCounter);
-		printf("Sending msg %d, TTL %d, to %s:%d\n", iCounter, TTL_VALUE, TEST_ADDR, TEST_PORT);
-	} else {
-		printf("Sending msg %d, TTL %d, to %s:%d: %s\n", iCounter, TTL_VALUE, TEST_ADDR, TEST_PORT, handler_par.achOut);
-	}
-
-	ret = mc_send(handler_par.s, handler_par.to, handler_par.achOut,
-		      handler_par.len);
-	if (ret < 0) {
-		perror("sendto");
-		exit(1);
-	}
-
-	if (iCounter == handler_par.num_pkts)
-		exit(1);
-
-	iCounter++;
-	return;
 }
 
 /**
