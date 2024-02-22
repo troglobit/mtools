@@ -126,41 +126,41 @@ int main(int argc, char *argv[])
 	struct sock s = {}, to = {};
 	const char *if_name = NULL;
 	char buf[BUFSIZE] = "";
-	int ii = 1;
 	struct itimerval times;
 	sigset_t sigset;
 	struct sigaction act;
 	int num_pkts = 0;
+	int opt = 1;
 	int ret, i;
 
-	if ((argc == 2) && (strcmp(argv[ii], "-v") == 0)) {
+	if ((argc == 2) && (strcmp(argv[opt], "-v") == 0)) {
 		printf("msend version %s\n", VERSION);
 		return 0;
 	}
-	if ((argc == 2) && (strcmp(argv[ii], "-h") == 0)) {
+	if ((argc == 2) && (strcmp(argv[opt], "-h") == 0)) {
 		usage();
 		return 0;
 	}
 
-	while (ii < argc) {
-		if (strcmp(argv[ii], "-g") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				TEST_ADDR = argv[ii];
-				ii++;
+	while (opt < argc) {
+		if (strcmp(argv[opt], "-g") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				TEST_ADDR = argv[opt];
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-p") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				TEST_PORT = atoi(argv[ii]);
-				ii++;
+		} else if (strcmp(argv[opt], "-p") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				TEST_PORT = atoi(argv[opt]);
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-join") == 0) {
+		} else if (strcmp(argv[opt], "-join") == 0) {
 			join_flag++;;
-			ii++;
-		} else if (strcmp(argv[ii], "-i") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
+			opt++;
+		} else if (strcmp(argv[opt], "-i") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
 				if (saddr) {
 					printf("Single source address allowed\n");
 					exit(1);
@@ -172,50 +172,50 @@ int main(int argc, char *argv[])
 					exit(1);
 				}
 
-				ret = ip_address_parse(argv[ii], saddr);
+				ret = ip_address_parse(argv[opt], saddr);
 				if (ret)
 					exit(1);
 
-				ii++;
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-I") == 0) {
-			ii++;
-			if (ii < argc) {
+		} else if (strcmp(argv[opt], "-I") == 0) {
+			opt++;
+			if (opt < argc) {
 				if (if_name) {
 					printf("Single interface expected\n");
 					exit(1);
 				}
 
-				if_name = argv[ii];
-				ii++;
+				if_name = argv[opt];
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-t") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				TTL_VALUE = atoi(argv[ii]);
-				ii++;
+		} else if (strcmp(argv[opt], "-t") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				TTL_VALUE = atoi(argv[opt]);
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-P") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				SLEEP_TIME = atoi(argv[ii]);
-				ii++;
+		} else if (strcmp(argv[opt], "-P") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				SLEEP_TIME = atoi(argv[opt]);
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-n") == 0) {
-			ii++;
+		} else if (strcmp(argv[opt], "-n") == 0) {
+			opt++;
 			NUM = 1;
-			ii++;
-		} else if (strcmp(argv[ii], "-c") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				num_pkts = atoi(argv[ii]);
-				ii++;
+			opt++;
+		} else if (strcmp(argv[opt], "-c") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				num_pkts = atoi(argv[opt]);
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-text") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				strcpy(buf, argv[ii]);
-				ii++;
+		} else if (strcmp(argv[opt], "-text") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				strcpy(buf, argv[opt]);
+				opt++;
 			}
 		} else {
 			printf("wrong parameters!\n\n");

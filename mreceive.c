@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 	struct ip_address mc;
 	struct sock s, from;
 	int ipnum = 0;
-	int ii;
+	int opt = 1;
 	unsigned int numreceived;
 	int rcvCountOld = 0;
 	int rcvCountNew = 1;
@@ -83,61 +83,52 @@ int main(int argc, char *argv[])
 	int ret;
 	int i;
 
-/*
-  if( argc < 2 ) {
-    usage(); 
-    return 1;
-  }
-*/
-
-	ii = 1;
-
-	if ((argc == 2) && (strcmp(argv[ii], "-v") == 0)) {
+	if ((argc == 2) && (strcmp(argv[opt], "-v") == 0)) {
 		printf("mreceive version %s\n", VERSION);
 		return 0;
 	}
-	if ((argc == 2) && (strcmp(argv[ii], "-h") == 0)) {
+	if ((argc == 2) && (strcmp(argv[opt], "-h") == 0)) {
 		usage();
 		return 0;
 	}
 
 
-	while (ii < argc) {
-		if (strcmp(argv[ii], "-g") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				TEST_ADDR = argv[ii];
-				ii++;
+	while (opt < argc) {
+		if (strcmp(argv[opt], "-g") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				TEST_ADDR = argv[opt];
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-p") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				TEST_PORT = atoi(argv[ii]);
-				ii++;
+		} else if (strcmp(argv[opt], "-p") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				TEST_PORT = atoi(argv[opt]);
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-i") == 0) {
-			ii++;
-			if ((ii < argc) && !(strchr(argv[ii], '-'))) {
-				ret = ip_address_parse(argv[ii], &IP[ipnum]);
+		} else if (strcmp(argv[opt], "-i") == 0) {
+			opt++;
+			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
+				ret = ip_address_parse(argv[opt], &IP[ipnum]);
 				if (ret)
 					exit(1);
 
-				ii++;
+				opt++;
 				ipnum++;
 			}
-		} else if (strcmp(argv[ii], "-I") == 0) {
-			ii++;
-			if (ii < argc) {
+		} else if (strcmp(argv[opt], "-I") == 0) {
+			opt++;
+			if (opt < argc) {
 				if (if_name) {
 					printf("Single interface expected\n");
 					exit(1);
 				}
 
-				if_name = argv[ii];
-				ii++;
+				if_name = argv[opt];
+				opt++;
 			}
-		} else if (strcmp(argv[ii], "-n") == 0) {
-			ii++;
+		} else if (strcmp(argv[opt], "-n") == 0) {
+			opt++;
 			NUM = 1;
 		} else {
 			printf("wrong parameters!\n\n");
