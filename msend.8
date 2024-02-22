@@ -11,11 +11,13 @@
 .Nd send UDP messages to a multicast group
 .Sh SYNOPSIS
 .Nm
+.Op Fl c Ar NUM
 .Op Fl g Ar GROUP
 .Op Fl p Ar PORT
 .Op Fl join
 .Op Fl t Ar TTL
 .Op Fl i Ar ADDRESS
+.Op Fl I Ar INTERFACE
 .Op Fl P Ar PERIOD
 .Op Fl text Ar 'text' | Fl n
 .Nm
@@ -28,10 +30,14 @@ and
 options.
 .Sh OPTIONS
 .Bl -tag -width Ds
+.It Fl c Ar NUM
+Limit number of packets to send, default: unlimited.
 .It Fl g Ar GROUP
-Specify the IP multicast address to which the packets are sent.  The
-default group is
-.Nm 224.1.1.1 .
+Specify the IP multicast group address to which the packets are sent.
+The default group for IPv4 is
+.Nm 224.1.1.1
+and for IPv6
+.Nm FF02::1:1 .
 .It Fl p Ar PORT
 Specify the UDP port number used by the multicast group.  The default
 port number is
@@ -47,6 +53,9 @@ packets!  The default value is 1.
 Specify the IP address of the interface to be used to send the packets.
 The default value is INADDR_ANY which implies that the default interface
 selected by the system will be used.
+.It Fl I Ar INTERFACE
+The interface on which to send.  Can be specified as an alternative to
+.Fl i .
 .It Fl P Ar PERIOD
 Specify the interval in milliseconds between two transmitted packets.
 The default value is 1000 milliseconds.

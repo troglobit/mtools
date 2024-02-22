@@ -16,6 +16,7 @@
 .Op Fl i Ar ADDRESS
 .Op ...
 .Op Fl i Ar ADDRESS
+.Op Fl I Ar INTERFACE
 .Op Fl n
 .Nm
 .Op Fl v | Fl h
@@ -44,6 +45,10 @@ packets.  The default value is
 .Nm INADDR_ANY
 which implies that the default interface selected by the system will be
 used.
+.It Fl I Ar INTERFACE
+The interface on which to receive.  Can be specified as an alternative
+to
+.Fl i .
 .It Fl n
 Interpret the contents of the message as a number instead of a string of
 characters.  This option should be given when running

@@ -15,7 +15,7 @@ multicast setups.
 ## SYNOPSIS
 
 	msend [-g GROUP] [-p PORT] [-join] [-t TTL] [-i ADDRESS] [-P PERIOD]
-	      [-I INTERFACE] [-text "text" | -n]
+	      [-I INTERFACE] [-c NUM] [-text "text" | -n]
 	msend [-v|-h]
 	mreceive [-g group] [-p port] [-i ip] ... [-i ip] [-I INTERFACE] [-n]
 	mreceive [-v|-h]
@@ -30,6 +30,10 @@ options, then receives and displays the multicast packets sent to this
 group:port combination by the `msend` command.
 
 ## OPTIONS
+
+- `-c NUM`
+
+  Number of packets to send, default: unlimited.
 
 * `-g GROUP`
 
@@ -63,7 +67,7 @@ group:port combination by the `msend` command.
 * `-I INTERFACE`
 
   Specify the interface to send on. Can be specified as an alternative
-  to -i.
+  to `-i`.
 
 * `-P PERIOD`
 
