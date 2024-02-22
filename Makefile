@@ -10,7 +10,7 @@ ARCHIVE     = $(PKG).tar.gz
 
 CC         ?= $(CROSS)gcc
 CPPFLAGS   += -DVERSION=\"$(VERSION)\"
-CPPFLAGS   += -W -Wall
+CFLAGS     += -W -Wall -Wextra -g
 
 prefix     ?= /usr/local
 sysconfdir ?= /etc
@@ -45,7 +45,7 @@ install: $(EXEC)
 	@install -d $(DESTDIR)$(datadir)
 	@install -d $(DESTDIR)$(mandir)
 	@for file in $(EXEC); do \
-		install -m 0755 $$file $(DESTDIR)$(prefix)/sbin/$$file; \
+		install -s -m 0755 $$file $(DESTDIR)$(prefix)/sbin/$$file; \
 	done
 	@for file in $(DISTFILES); do \
 		install -m 0644 $$file $(DESTDIR)$(datadir)/$$file; \
