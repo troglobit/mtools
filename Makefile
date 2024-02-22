@@ -3,7 +3,7 @@
 
 # Figure out root of library, unless used as submodule
 ROOTDIR    ?= $(shell pwd)
-VERSION    ?= 2.3
+VERSION    ?= 3.0-beta1
 NAME        = mtools
 PKG         = $(NAME)-$(VERSION)
 ARCHIVE     = $(PKG).tar.gz
