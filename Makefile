@@ -1,8 +1,6 @@
 # -*-Makefile-*- for mtools
 # Originally from http://www.cs.virginia.edu/~mngroup/software/
 
-# Figure out root of library, unless used as submodule
-ROOTDIR    ?= $(shell pwd)
 VERSION    ?= 3.0-beta1
 NAME        = mtools
 PKG         = $(NAME)-$(VERSION)
@@ -13,7 +11,6 @@ CPPFLAGS   += -DVERSION=\"$(VERSION)\"
 CFLAGS     += -W -Wall -Wextra -g
 
 prefix     ?= /usr/local
-sysconfdir ?= /etc
 datadir     = $(prefix)/share/doc/mtools
 mandir      = $(prefix)/share/man/man8
 
