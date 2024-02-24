@@ -23,7 +23,7 @@ EXEC       := msend mreceive
 OBJS       := msend.o mreceive.o common.o
 DEPS       := msend.d mreceive.d common.d
 MANS        = $(addsuffix .8,$(EXEC))
-DISTFILES   = README.md LICENSE.md
+DISTFILES   = ChangeLog.md README.md LICENSE.md
 
 all: $(EXEC)
 
