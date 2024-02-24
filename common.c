@@ -79,13 +79,13 @@ int socket_create(struct sock *s, int family, int port,
 			close(fd);
 			return ret;
 		}
-	} else {
-		ret = bind(fd, serv_addr, s->addr_size);
-		if (ret) {
-			perror("bind");
-			close(fd);
-			return ret;
-		}
+	}
+
+	ret = bind(fd, serv_addr, s->addr_size);
+	if (ret) {
+		perror("bind");
+		close(fd);
+		return ret;
 	}
 
 	s->fd = fd;
