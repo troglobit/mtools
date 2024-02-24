@@ -14,11 +14,9 @@ multicast setups.
 
 ## SYNOPSIS
 
-	msend [-g GROUP] [-p PORT] [-join] [-t TTL] [-i ADDRESS] [-P PERIOD]
-	      [-I INTERFACE] [-c NUM] [-text "text" | -n]
-	msend [-v|-h]
-	mreceive [-g group] [-p port] [-i ip] ... [-i ip] [-I INTERFACE] [-n]
-	mreceive [-v|-h]
+	msend [-46hnv] [-g GROUP] [-p PORT] [-join] [-t TTL] [-i ADDRESS] [-P PERIOD]
+	      [-I INTERFACE] [-c NUM] [-text "text"]
+	mreceive [-46hnv] [-g group] [-p port] [-i ip] ... [-i ip] [-I INTERFACE]
 
 ## DESCRIPTION
 
