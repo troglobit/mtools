@@ -1,3 +1,4 @@
+# mtools
 
 This is a cleaned up version of mtools from the [University of Virginia's
 Multimedia Networks Group][1], with added IPv6 support.
@@ -106,5 +107,20 @@ group:port combination by the `msend` command.
 * `-h`
 
   Print the command usage.
+
+
+## BUILD & INSTALL
+
+The build system is a plain Makefile with the following environment
+variables to control the build and install process:
+
+ - `CC`: possible to override default compiler, alt. to `CROSS`
+ - `CROSS`: set when cross compiling, e.g. `CROSS=aarch64-linux-gnu-`
+ - `prefix`: install prefix, default `/usr/local`
+
+**Example:**
+
+    $ make all
+    $ make install prefix=/usr
 
 [1]: http://www.cs.virginia.edu/~mngroup/software/
