@@ -4,6 +4,25 @@ Change Log
 All relevant changes are documented in this file.
 
 
+[v3.0][] - 2024-02-24
+---------------------
+
+This release adds IPv6 support, contributed by Vladimir Oltean.
+
+### Changes
+
+- Add `-I INTERFACE` option to bind to a specific interface for send/receive
+- Add `-c NUM` option to only send a limited number of packets
+- Add `-4` and `-6` options to select default group to send/receive with `I`
+- Sort command line options alphabetically
+- Update documentation
+
+### Fixes
+
+- Fix `-v` to print correct version instead of hard-coded old version
+- Bind to port after binding to device to receive only test packets
+
+
 [v2.3][] - 2015-07-30
 ---------------------
 
