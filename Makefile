@@ -78,6 +78,7 @@ dist:
 	@echo "Building .gz tarball of $(PKG) in parent dir..."
 	@git archive --format=tar --prefix=$(PKG)/ v$(VERSION) | gzip >../$(ARCHIVE)
 	@(cd ..; md5sum $(ARCHIVE) | tee $(ARCHIVE).md5)
+	@(cd ..; sha256sum $(ARCHIVE) | tee $(ARCHIVE).sha256)
 
 # Include automatically generated rules
 -include $(DEPS)
