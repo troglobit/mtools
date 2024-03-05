@@ -67,6 +67,7 @@ Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
   -n           Interpret the contents of the message as a number instead of\n\
                a string of characters.  Use this with `msend -n`\n\
   -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
+  -q           Quiet, don't print every received packet, errors still printed\n\
   -v           Print version information.\n\n");
 }
 
@@ -116,6 +117,9 @@ int main(int argc, char *argv[])
 				TEST_PORT = atoi(argv[opt]);
 				opt++;
 			}
+		} else if (strcmp(argv[opt], "-q") == 0) {
+			opt++;
+			verbose = 0;
 		} else if (strcmp(argv[opt], "-i") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
@@ -186,7 +190,7 @@ int main(int argc, char *argv[])
 	if (ret)
 		exit(1);
 
-	printf("Now receiving from multicast group: %s\n", TEST_ADDR);
+	logit("Now receiving from multicast group: %s\n", TEST_ADDR);
 
 	for (i = 0;; i++) {
 		char from_buf[INET6_ADDRSTRLEN];
@@ -224,9 +228,9 @@ int main(int argc, char *argv[])
 			numreceived =
 			    (unsigned int)buf[0] + ((unsigned int)(buf[1]) << 8) + ((unsigned int)(buf[2]) << 16) +
 			    ((unsigned int)(buf[3]) >> 24);
-			fprintf(stdout, "%5d\t%s:%5d\t%d.%03d\t%5u\n", counter,
-				from_buf, socket_get_port(&from),
-				curtime / 1000000, (curtime % 1000000) / 1000, numreceived);
+			logit("%5d\t%s:%5d\t%d.%03d\t%5u\n", counter,
+			      from_buf, socket_get_port(&from),
+			      curtime / 1000000, (curtime % 1000000) / 1000, numreceived);
 			fflush(stdout);
 			rcvCountNew = numreceived;
 			if (rcvCountNew > rcvCountOld + 1) {
@@ -244,7 +248,7 @@ int main(int argc, char *argv[])
 			}
 			rcvCountOld = rcvCountNew;
 		} else {
-			printf("Receive msg %d from %s:%d: %s\n", counter, from_buf, socket_get_port(&from), buf);
+			logit("Receive msg %d from %s:%d: %s\n", counter, from_buf, socket_get_port(&from), buf);
 		}
 		counter++;
 	}

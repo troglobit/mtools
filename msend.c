@@ -75,9 +75,9 @@ void timer_cb(int signo)
 	if (NUM) {
 		param.buf = (char *)(&counter);
 		param.len = sizeof(counter);
-		printf("Sending msg %d, TTL %d, to %s:%d\n", counter, TTL_VALUE, TEST_ADDR, TEST_PORT);
+		logit("Sending msg %d, TTL %d, to %s:%d\n", counter, TTL_VALUE, TEST_ADDR, TEST_PORT);
 	} else {
-		printf("Sending msg %d, TTL %d, to %s:%d: %s\n", counter, TTL_VALUE, TEST_ADDR, TEST_PORT, param.buf);
+		logit("Sending msg %d, TTL %d, to %s:%d: %s\n", counter, TTL_VALUE, TEST_ADDR, TEST_PORT, param.buf);
 	}
 
 	ret = mc_send(param.s, param.to, param.buf,
@@ -113,6 +113,7 @@ Usage:  msend [-46hnv] [-c NUM] [-g GROUP] [-p PORT] [-join] [-i ADDRESS]\n\
   -n           Encode -text argument as a number instead of a string.\n\
   -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
   -P PERIOD    Interval in milliseconds between packets.  Default 1000 msec\n\
+  -q           Quiet, don't print 'Sedning msg ...' for every packet\n\
   -t TTL       The TTL value (1-255) used in the packets.  You must set\n\
                this higher if you want to route the traffic, otherwise\n\
                the first router will drop the packets!  Default: 1\n\
@@ -209,6 +210,9 @@ int main(int argc, char *argv[])
 				SLEEP_TIME = atoi(argv[opt]);
 				opt++;
 			}
+		} else if (strcmp(argv[opt], "-q") == 0) {
+			opt++;
+			verbose = 0;
 		} else if (strcmp(argv[opt], "-n") == 0) {
 			opt++;
 			NUM = 1;

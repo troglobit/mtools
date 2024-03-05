@@ -9,6 +9,9 @@
 
 #include "common.h"
 
+int verbose = 1;
+
+
 int ip_address_parse(const char *string, struct ip_address *ip)
 {
 	int ret;

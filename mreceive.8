@@ -11,7 +11,7 @@
 .Nd receive UDP multicast messages and display them
 .Sh SYNOPSIS
 .Nm
-.Op Fl 46hnv
+.Op Fl 46hnvq
 .Op Fl g Ar GROUP
 .Op Fl i Ar ADDRESS
 .Op ...
@@ -51,6 +51,9 @@ The default group is
 Specify the UDP port number used by the multicast group.  The default
 port number is
 .Nm 4444 .
+.It Fl q
+Quiet mode, do not log to stdout every time a message is received.
+Errors are stil logged.
 .It Fl i Ar ADDRESS
 Specify the IP addresses of one or more interfaces to receive multicast
 packets.  The default value is

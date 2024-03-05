@@ -8,6 +8,8 @@
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 
+#define logit(fmt, args...) if (verbose) printf(fmt, ##args)
+
 struct ip_address {
 	int family;
 	union {
@@ -24,6 +26,8 @@ struct sock {
 	};
 	int fd;
 };
+
+extern int verbose;
 
 int ip_address_parse(const char *string, struct ip_address *ip);
 int socket_create(struct sock *s, int family, int port,

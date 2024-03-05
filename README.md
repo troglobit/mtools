@@ -88,6 +88,11 @@ group:port combination by the `msend` command.
   Specify the interval in milliseconds between two transmitted packets.
   The default value is 1000 milliseconds.
 
+* `-q`
+
+  Quiet mode, don't print sending or receiving messages.  Errors are
+  still printed.
+
 * `-text "text"`
 
   Specify a message text which is sent as the payload of the packets and

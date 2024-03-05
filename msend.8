@@ -11,7 +11,7 @@
 .Nd send UDP messages to a multicast group
 .Sh SYNOPSIS
 .Nm
-.Op Fl 46hnv
+.Op Fl 46hnvq
 .Op Fl c Ar NUM
 .Op Fl g Ar GROUP
 .Op Fl join
@@ -72,6 +72,9 @@ The interface on which to send.  Can be specified as an alternative to
 .It Fl P Ar PERIOD
 Specify the interval in milliseconds between two transmitted packets.
 The default value is 1000 milliseconds.
+.It Fl q
+Quiet mode, do not log to stdout every time a message is successfully
+sent.  Errors are stil logged.
 .It Fl text Ar 'text'
 Specify a message text which is sent as the payload of the packets and
 is displayed by the
