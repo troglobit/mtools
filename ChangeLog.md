@@ -4,6 +4,14 @@ Change Log
 All relevant changes are documented in this file.
 
 
+[v3.1][] - UNRELEASED
+---------------------
+
+### Changes
+- Add support for quiet (`-q`) mode operation
+- Add credit to original authors in README and man pages
+
+
 [v3.0][] - 2024-02-24
 ---------------------
 
@@ -45,6 +53,9 @@ Virginia](http://www.cs.virginia.edu/~mngroup/software/).
 - Create real public domain LICENSE file
 - Tested on Ubuntu Linux 14.04 (Amd64) and FreeBSD (Amd64)
 
+
+[v3.1]: https://github.com/troglobit/mtools/compare/v3.0...v3.1
+[v3.0]: https://github.com/troglobit/mtools/compare/v2.3...v3.0
 [v2.3]: https://github.com/troglobit/mtools/compare/v2.2...v2.3
 [v2.2]: https://github.com/troglobit/mtools/compare/v2.1...v2.2
 [v2.1]: https://github.com/troglobit/mtools/compare/v2.0...v2.1
