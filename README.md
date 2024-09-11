@@ -128,4 +128,18 @@ variables to control the build and install process:
     $ make all
     $ make install prefix=/usr
 
+
+Origin & References
+-------------------
+
+This is the continuation of mtools, initially called mSendReceive, written
+by Jianping Wang, Yvan Pointurier, and Jörg Liebeherr while at [University
+of Virginia's Multimedia Networks Group][1].
+
+The project is maintained by [Joachim Wiberg][3] at [GitHub][2].  Please
+file bug reports, clone and send pull requests for bug fixes and proposed
+extensions.
+
 [1]: http://www.cs.virginia.edu/~mngroup/software/
+[2]: https://github.com/troglobit/mtools
+[3]: https://troglobit.com
