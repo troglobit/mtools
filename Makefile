@@ -11,7 +11,7 @@ CPPFLAGS   += -DVERSION=\"$(VERSION)\"
 CFLAGS     += -W -Wall -Wextra -g
 
 prefix     ?= /usr/local
-datadir     = $(prefix)/share/doc/mtools
+datadir    ?= $(prefix)/share/doc/mtools
 mandir      = $(prefix)/share/man/man8
 
 # ttcp is currently not part of the distribution because its not tested
