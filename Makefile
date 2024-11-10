@@ -7,7 +7,7 @@ PKG         = $(NAME)-$(VERSION)
 ARCHIVE     = $(PKG).tar.gz
 
 CC         ?= $(CROSS)gcc
-CPPFLAGS   += -DVERSION=\"$(VERSION)\"
+CPPFLAGS   += -D_GNU_SOURCE -DVERSION=\"$(VERSION)\"
 CFLAGS     += -W -Wall -Wextra -g
 
 prefix     ?= /usr/local

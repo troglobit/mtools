@@ -20,6 +20,7 @@
  * 
  */
 
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,7 +78,7 @@ void timer_cb(int signo)
 	counter++;
 }
 
-void usage(void)
+static int usage(int rc)
 {
 	printf("\
 Usage:  msend [-46hnv] [-c NUM] [-g GROUP] [-p PORT] [-join] [-i ADDRESS]\n\
@@ -104,10 +105,17 @@ Usage:  msend [-46hnv] [-c NUM] [-g GROUP] [-p PORT] [-join] [-i ADDRESS]\n\
   -text \"text\" Specify a string to use as payload in the packets, also\n\
                displayed by the mreceive command.  Default: empty\n\
   -v           Print version information.\n\n");
+
+	return rc;
 }
 
 int main(int argc, char *argv[])
 {
+	static struct option opts[] = {
+		{ "join",       no_argument,       NULL, 'j' },
+		{ "text",       required_argument, NULL, 'T' },
+		{ NULL,         0,                 NULL, 0   }
+	};
 	struct ip_address *saddr = NULL, mc;
 	struct sock s = {}, to = {};
 	const char *if_name = NULL;
@@ -117,105 +125,76 @@ int main(int argc, char *argv[])
 	int family = AF_INET;
 	sigset_t sigset;
 	int num_pkts = 0;
-	int opt = 1;
-	int ret, i;
+	int ret, c;
 
-	if ((argc == 2) && (strcmp(argv[opt], "-v") == 0)) {
-		printf("msend version %s\n", VERSION);
-		return 0;
-	}
-	if ((argc == 2) && (strcmp(argv[opt], "-h") == 0)) {
-		usage();
-		return 0;
-	}
-
-	while (opt < argc) {
-		if (strcmp(argv[opt], "-4") == 0) {
+	while ((c = getopt_long_only(argc, argv, "46c:g:hi:I:jnp:P:qt:T:v", opts, NULL)) != EOF) {
+		switch (c) {
+		case '4':
 			family = AF_INET; /* for completeness */
-			opt++;
-		} else if (strcmp(argv[opt], "-6") == 0) {
+			break;
+		case '6':
 			family = AF_INET6;
-			opt++;
-		} else if (strcmp(argv[opt], "-g") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				test_addr = argv[opt];
-				opt++;
+			break;
+		case 'c':
+			num_pkts = atoi(optarg);
+			break;
+		case 'g':
+			test_addr = optarg;
+			break;
+		case 'h':
+			return usage(0);
+		case 'i':
+			if (saddr) {
+				printf("Single source address allowed\n");
+				exit(1);
 			}
-		} else if (strcmp(argv[opt], "-p") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				test_port = atoi(argv[opt]);
-				opt++;
-			}
-		} else if (strcmp(argv[opt], "-join") == 0) {
-			join_flag++;;
-			opt++;
-		} else if (strcmp(argv[opt], "-i") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				if (saddr) {
-					printf("Single source address allowed\n");
-					exit(1);
-				}
 
-				saddr = calloc(1, sizeof(*saddr));
-				if (!saddr) {
-					printf("Low memory\n");
-					exit(1);
-				}
+			saddr = calloc(1, sizeof(*saddr));
+			if (!saddr) {
+				printf("Low memory\n");
+				exit(1);
+			}
 
-				ret = ip_address_parse(argv[opt], saddr);
-				if (ret)
-					exit(1);
-				family = saddr->family;
-				opt++;
+			ret = ip_address_parse(optarg, saddr);
+			if (ret)
+				exit(1);
+			family = saddr->family;
+			break;
+		case 'I':
+			if (if_name) {
+				printf("Single interface expected\n");
+				exit(1);
 			}
-		} else if (strcmp(argv[opt], "-I") == 0) {
-			opt++;
-			if (opt < argc) {
-				if (if_name) {
-					printf("Single interface expected\n");
-					exit(1);
-				}
 
-				if_name = argv[opt];
-				opt++;
-			}
-		} else if (strcmp(argv[opt], "-t") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				ttl = atoi(argv[opt]);
-				opt++;
-			}
-		} else if (strcmp(argv[opt], "-P") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				period = atoi(argv[opt]);
-				opt++;
-			}
-		} else if (strcmp(argv[opt], "-q") == 0) {
-			opt++;
-			verbose = 0;
-		} else if (strcmp(argv[opt], "-n") == 0) {
-			opt++;
+			if_name = optarg;
+			break;
+		case 'j':
+			join_flag++;
+			break;
+		case 'n':
 			isnumber = 1;
-		} else if (strcmp(argv[opt], "-c") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				num_pkts = atoi(argv[opt]);
-				opt++;
-			}
-		} else if (strcmp(argv[opt], "-text") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				strcpy(buf, argv[opt]);
-				opt++;
-			}
-		} else {
+			break;
+		case 'p':
+			test_port = atoi(optarg);
+			break;
+		case 'P':
+			period = atoi(optarg);
+			break;
+		case 'q':
+			verbose = 0;
+			break;
+		case 't':
+			ttl = atoi(optarg);
+			break;
+		case 'T':
+			strcpy(buf, optarg);
+			break;
+		case 'v':
+			printf("msend version %s\n", VERSION);
+			return 0;
+		default:
 			printf("wrong parameters!\n\n");
-			usage();
-			return 1;
+			return usage(1);
 		}
 	}
 
@@ -308,6 +287,8 @@ int main(int argc, char *argv[])
 		}
 		return 0;
 	} else {
+		int i;
+
 		for (i = 0; num_pkts && i < num_pkts; i++) {
 			if (isnumber) {
 				buf[3] = (unsigned char)(i >> 24);

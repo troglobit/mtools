@@ -18,6 +18,7 @@
  * 
  */
 
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,7 +41,7 @@ int   test_port   = 4444;
 int   isnumber    = 0;
 
 
-void usage(void)
+static int usage(int rc)
 {
 	printf("\
 Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
@@ -59,6 +60,8 @@ Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
   -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
   -q           Quiet, don't print every received packet, errors still printed\n\
   -v           Print version information.\n\n");
+
+	return rc;
 }
 
 int main(int argc, char *argv[])
@@ -74,71 +77,52 @@ int main(int argc, char *argv[])
 	struct timeval tv;
 	int starttime;
 	int ipnum = 0;
-	int opt = 1;
-	int ret;
+	int ret, c;
 	int i;
 
-	if ((argc == 2) && (strcmp(argv[opt], "-v") == 0)) {
-		printf("mreceive version %s\n", VERSION);
-		return 0;
-	}
-	if ((argc == 2) && (strcmp(argv[opt], "-h") == 0)) {
-		usage();
-		return 0;
-	}
-
-
-	while (opt < argc) {
-		if (strcmp(argv[opt], "-4") == 0) {
+	while ((c = getopt(argc, argv, "46g:hi:I:np:qv")) != EOF) {
+		switch (c) {
+		case '4':
 			family = AF_INET; /* for completeness */
-			opt++;
-		} else if (strcmp(argv[opt], "-6") == 0) {
+			break;
+		case '6':
 			family = AF_INET6;
-			opt++;
-		} else if (strcmp(argv[opt], "-g") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				test_addr = argv[opt];
-				opt++;
-			}
-		} else if (strcmp(argv[opt], "-p") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				test_port = atoi(argv[opt]);
-				opt++;
-			}
-		} else if (strcmp(argv[opt], "-q") == 0) {
-			opt++;
-			verbose = 0;
-		} else if (strcmp(argv[opt], "-i") == 0) {
-			opt++;
-			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				ret = ip_address_parse(argv[opt], &ip[ipnum]);
-				if (ret)
-					exit(1);
+			break;
+		case 'g':
+			test_addr = optarg;
+			break;
+		case 'h':
+			return usage(0);
+		case 'i':
+			ret = ip_address_parse(optarg, &ip[ipnum]);
+			if (ret)
+				exit(1);
 
-				family = ip[ipnum].family;
-				opt++;
-				ipnum++;
+			family = ip[ipnum++].family;
+			break;
+		case 'I':
+			if (if_name) {
+				printf("Single interface expected\n");
+				exit(1);
 			}
-		} else if (strcmp(argv[opt], "-I") == 0) {
-			opt++;
-			if (opt < argc) {
-				if (if_name) {
-					printf("Single interface expected\n");
-					exit(1);
-				}
 
-				if_name = argv[opt];
-				opt++;
-			}
-		} else if (strcmp(argv[opt], "-n") == 0) {
-			opt++;
+			if_name = optarg;
+			break;
+		case 'n':
 			isnumber = 1;
-		} else {
+			break;
+		case 'p':
+			test_port = atoi(optarg);
+			break;
+		case 'q':
+			verbose = 0;
+			break;
+		case 'v':
+			printf("mreceive version %s\n", VERSION);
+			return 0;
+		default:
 			printf("wrong parameters!\n\n");
-			usage();
-			return 1;
+			return usage(1);
 		}
 	}
 
