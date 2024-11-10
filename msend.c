@@ -32,28 +32,6 @@
 
 #include "common.h"
 
-#define TRUE 1
-#define FALSE 0
-#ifndef INVALID_SOCKET
-#define INVALID_SOCKET -1
-#endif
-#ifndef SOCKET_ERROR
-#define SOCKET_ERROR -1
-#endif
-#define LOOPMAX   20
-#define BUFSIZE   1024
-
-#define TEST_ADDR_IPV4 "224.1.1.1"
-#define TEST_ADDR_IPV6 "ff2e::1"
-
-char *TEST_ADDR = NULL;
-int TEST_PORT = 4444;
-int TTL_VALUE = 1;
-int SLEEP_TIME = 1000;
-int NUM = 0;
-
-int join_flag = 0;		/* not join */
-
 typedef struct {
 	struct sock *s;
 	struct sock *to;
@@ -61,6 +39,13 @@ typedef struct {
 	int len;
 	int num_pkts;
 } param_t;
+
+char *test_addr = NULL;
+int   test_port = 4444;
+int   ttl       = 1;
+int   period    = 1000;		/* msec */
+int   isnumber  = 0;
+int   join_flag = 0;		/* not join */
 
 param_t param;
 
@@ -72,16 +57,15 @@ void timer_cb(int signo)
 
 	(void)signo;
 
-	if (NUM) {
+	if (isnumber) {
 		param.buf = (char *)(&counter);
 		param.len = sizeof(counter);
-		logit("Sending msg %d, TTL %d, to %s:%d\n", counter, TTL_VALUE, TEST_ADDR, TEST_PORT);
+		logit("Sending msg %d, TTL %d, to %s:%d\n", counter, ttl, test_addr, test_port);
 	} else {
-		logit("Sending msg %d, TTL %d, to %s:%d: %s\n", counter, TTL_VALUE, TEST_ADDR, TEST_PORT, param.buf);
+		logit("Sending msg %d, TTL %d, to %s:%d: %s\n", counter, ttl, test_addr, test_port, param.buf);
 	}
 
-	ret = mc_send(param.s, param.to, param.buf,
-		      param.len);
+	ret = mc_send(param.s, param.to, param.buf, param.len);
 	if (ret < 0) {
 		perror("sendto");
 		exit(1);
@@ -155,13 +139,13 @@ int main(int argc, char *argv[])
 		} else if (strcmp(argv[opt], "-g") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				TEST_ADDR = argv[opt];
+				test_addr = argv[opt];
 				opt++;
 			}
 		} else if (strcmp(argv[opt], "-p") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				TEST_PORT = atoi(argv[opt]);
+				test_port = atoi(argv[opt]);
 				opt++;
 			}
 		} else if (strcmp(argv[opt], "-join") == 0) {
@@ -201,13 +185,13 @@ int main(int argc, char *argv[])
 		} else if (strcmp(argv[opt], "-t") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				TTL_VALUE = atoi(argv[opt]);
+				ttl = atoi(argv[opt]);
 				opt++;
 			}
 		} else if (strcmp(argv[opt], "-P") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				SLEEP_TIME = atoi(argv[opt]);
+				period = atoi(argv[opt]);
 				opt++;
 			}
 		} else if (strcmp(argv[opt], "-q") == 0) {
@@ -215,7 +199,7 @@ int main(int argc, char *argv[])
 			verbose = 0;
 		} else if (strcmp(argv[opt], "-n") == 0) {
 			opt++;
-			NUM = 1;
+			isnumber = 1;
 		} else if (strcmp(argv[opt], "-c") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
@@ -235,16 +219,16 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (TEST_ADDR == NULL) {
+	if (test_addr == NULL) {
 		if (family == AF_INET)
-			TEST_ADDR = TEST_ADDR_IPV4;
+			test_addr = TEST_ADDR_IPV4;
 		else if (family == AF_INET6)
-			TEST_ADDR = TEST_ADDR_IPV6;
+			test_addr = TEST_ADDR_IPV6;
 		else
 			exit(1);
 	}
 
-	ret = ip_address_parse(TEST_ADDR, &mc);
+	ret = ip_address_parse(test_addr, &mc);
 	if (ret)
 		exit(1);
 
@@ -254,7 +238,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* get a datagram socket */
-	ret = socket_create(&s, mc.family, TEST_PORT, saddr, if_name);
+	ret = socket_create(&s, mc.family, test_port, saddr, if_name);
 	if (ret)
 		exit(1);
 
@@ -266,7 +250,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* set TTL to traverse up to multiple routers */
-	ret = mc_set_hop_limit(&s, TTL_VALUE);
+	ret = mc_set_hop_limit(&s, ttl);
 	if (ret)
 		exit(1);
 
@@ -278,20 +262,20 @@ int main(int argc, char *argv[])
 	/* assign our destination address */
 	if (mc.family == AF_INET) {
 		to.udp4.sin_addr = mc.addr;
-		to.udp4.sin_port = htons(TEST_PORT);
+		to.udp4.sin_port = htons(test_port);
 		to.udp4.sin_family = AF_INET;
 		to.addr_size = sizeof(struct sockaddr_in);
 	} else {
 		to.udp6.sin6_addr = mc.addr6;
-		to.udp6.sin6_port = htons(TEST_PORT);
+		to.udp6.sin6_port = htons(test_port);
 		to.udp6.sin6_family = AF_INET6;
 		to.addr_size = sizeof(struct sockaddr_in6);
 	}
 
-	printf("Now sending to multicast group: %s\n", TEST_ADDR);
+	printf("Now sending to multicast group: %s\n", test_addr);
 
-	SLEEP_TIME *= 1000;	/* convert to microsecond */
-	if (SLEEP_TIME > 0) {
+	period *= 1000;	/* convert to microsecond */
+	if (period > 0) {
 		/* block SIGALRM */
 		sigemptyset(&sigset);
 		sigaddset(&sigset, SIGALRM);
@@ -307,8 +291,8 @@ int main(int argc, char *argv[])
 		 */
 		times.it_value.tv_sec = 0;	/* wait a bit for system to "stabilize"  */
 		times.it_value.tv_usec = 1;	/* tv_sec or tv_usec cannot be both zero */
-		times.it_interval.tv_sec = (time_t)(SLEEP_TIME / 1000000);
-		times.it_interval.tv_usec = (long)(SLEEP_TIME % 1000000);
+		times.it_interval.tv_sec = (time_t)(period / 1000000);
+		times.it_interval.tv_usec = (long)(period % 1000000);
 		setitimer(ITIMER_REAL, &times, NULL);
 
 		param.s = &s;
@@ -325,18 +309,18 @@ int main(int argc, char *argv[])
 		return 0;
 	} else {
 		for (i = 0; num_pkts && i < num_pkts; i++) {
-			if (NUM) {
+			if (isnumber) {
 				buf[3] = (unsigned char)(i >> 24);
 				buf[2] = (unsigned char)(i >> 16);
 				buf[1] = (unsigned char)(i >> 8);
 				buf[0] = (unsigned char)(i);
-				printf("Send out msg %d to %s:%d\n", i, TEST_ADDR, TEST_PORT);
+				printf("Send out msg %d to %s:%d\n", i, test_addr, test_port);
 			} else {
-				printf("Send out msg %d to %s:%d: %s\n", i, TEST_ADDR, TEST_PORT, buf);
+				printf("Send out msg %d to %s:%d: %s\n", i, test_addr, test_port, buf);
 			}
 
 			ret = mc_send(&s, &to, buf,
-				      NUM ? 4 : strlen(buf) + 1);
+				      isnumber ? 4 : strlen(buf) + 1);
 			if (ret < 0) {
 				perror("sendto");
 				exit(1);

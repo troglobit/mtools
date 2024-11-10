@@ -30,25 +30,15 @@
 
 #include "common.h"
 
-#define TRUE 1
-#define FALSE 0
-#ifndef INVALID_SOCKET
-#define INVALID_SOCKET -1
-#endif
-#ifndef SOCKET_ERROR
-#define SOCKET_ERROR -1
-#endif
-#define BUFSIZE   1024
 #define TTL_VALUE 2
-#define LOOPMAX   20
 #define MAXIP     16
-#define TEST_ADDR_IPV4 "224.1.1.1"
-#define TEST_ADDR_IPV6 "ff2e::1"
 
-char *TEST_ADDR = NULL;
-int TEST_PORT = 4444;
-struct ip_address IP[MAXIP];
-int NUM = 0;
+struct ip_address ip[MAXIP];
+
+char *test_addr   = NULL;
+int   test_port   = 4444;
+int   isnumber    = 0;
+
 
 void usage(void)
 {
@@ -108,13 +98,13 @@ int main(int argc, char *argv[])
 		} else if (strcmp(argv[opt], "-g") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				TEST_ADDR = argv[opt];
+				test_addr = argv[opt];
 				opt++;
 			}
 		} else if (strcmp(argv[opt], "-p") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				TEST_PORT = atoi(argv[opt]);
+				test_port = atoi(argv[opt]);
 				opt++;
 			}
 		} else if (strcmp(argv[opt], "-q") == 0) {
@@ -123,11 +113,11 @@ int main(int argc, char *argv[])
 		} else if (strcmp(argv[opt], "-i") == 0) {
 			opt++;
 			if ((opt < argc) && !(strchr(argv[opt], '-'))) {
-				ret = ip_address_parse(argv[opt], &IP[ipnum]);
+				ret = ip_address_parse(argv[opt], &ip[ipnum]);
 				if (ret)
 					exit(1);
 
-				family = IP[ipnum].family;
+				family = ip[ipnum].family;
 				opt++;
 				ipnum++;
 			}
@@ -144,7 +134,7 @@ int main(int argc, char *argv[])
 			}
 		} else if (strcmp(argv[opt], "-n") == 0) {
 			opt++;
-			NUM = 1;
+			isnumber = 1;
 		} else {
 			printf("wrong parameters!\n\n");
 			usage();
@@ -152,16 +142,16 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (TEST_ADDR == NULL) {
+	if (test_addr == NULL) {
 		if (family == AF_INET)
-			TEST_ADDR = TEST_ADDR_IPV4;
+			test_addr = TEST_ADDR_IPV4;
 		else if (family == AF_INET6)
-			TEST_ADDR = TEST_ADDR_IPV6;
+			test_addr = TEST_ADDR_IPV6;
 		else
 			exit(1);
 	}
 
-	ret = ip_address_parse(TEST_ADDR, &mc);
+	ret = ip_address_parse(test_addr, &mc);
 	if (ret)
 		exit(1);
 
@@ -176,12 +166,12 @@ int main(int argc, char *argv[])
 	}
 
 	/* get a datagram socket */
-	ret = socket_create(&s, mc.family, TEST_PORT, NULL, NULL);
+	ret = socket_create(&s, mc.family, test_port, NULL, NULL);
 	if (ret)
 		exit(1);
 
 	/* join the multicast group. */
-	ret = mc_join(&s, &mc, if_name, ipnum, IP);
+	ret = mc_join(&s, &mc, if_name, ipnum, ip);
 	if (ret)
 		exit(1);
 
@@ -190,7 +180,7 @@ int main(int argc, char *argv[])
 	if (ret)
 		exit(1);
 
-	logit("Now receiving from multicast group: %s\n", TEST_ADDR);
+	logit("Now receiving from multicast group: %s\n", test_addr);
 
 	for (i = 0;; i++) {
 		char from_buf[INET6_ADDRSTRLEN];
@@ -217,7 +207,7 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 
-		if (NUM) {
+		if (isnumber) {
 			int curtime;
 
 			gettimeofday(&tv, NULL);
@@ -254,7 +244,7 @@ int main(int argc, char *argv[])
 	}
 
 	return 0;
-}				/* end main() */
+}
 
 /**
  * Local Variables:

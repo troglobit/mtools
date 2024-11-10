@@ -8,6 +8,12 @@
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 
+#define TEST_ADDR_IPV4 "224.1.1.1"
+#define TEST_ADDR_IPV6 "ff2e::1"
+
+#define LOOPMAX        20
+#define BUFSIZE        1024
+
 #define logit(fmt, args...) if (verbose) printf(fmt, ##args)
 
 struct ip_address {
