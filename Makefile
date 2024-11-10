@@ -22,6 +22,10 @@ DEPS       := msend.d mreceive.d common.d
 MANS        = $(addsuffix .8,$(EXEC))
 DISTFILES   = ChangeLog.md README.md LICENSE.md
 
+ifeq ($(V),1)
+MAKEFLAGS  += --trace
+endif
+
 all: $(EXEC)
 
 .c.o:
