@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.Dd Sep 11, 2024
+.Dd Nov 11, 2024
 .\" Please adjust this date whenever revising the manpage.
 .Dt MSEND 8 SMM
 .Os
@@ -33,7 +33,7 @@ options.
 Select IPv4 test group, use with
 .Fl I Ar IFACE
 when not using
-.Fl i Ar ADDR
+.Fl i Ar ADDRESS
 or any
 .Fl g Ar GROUP .
 This is the default.
@@ -94,12 +94,12 @@ Print the command usage.
 .Sh EXAMPLE
 .Bd -literal -offset left
 $ msend -6 -I eth0
-Now sending to multicast group: ff2e::1
-Sending msg 1, TTL 1, to ff2e::1:4444:
-Sending msg 2, TTL 1, to ff2e::1:4444:
-Sending msg 3, TTL 1, to ff2e::1:4444:
-Sending msg 4, TTL 1, to ff2e::1:4444:
-Sending msg 5, TTL 1, to ff2e::1:4444:
+Now sending to multicast group: [ff2e::1]:4444
+Sending msg 1, TTL 1, to [ff2e::1]:4444:
+Sending msg 2, TTL 1, to [ff2e::1]:4444:
+Sending msg 3, TTL 1, to [ff2e::1]:4444:
+Sending msg 4, TTL 1, to [ff2e::1]:4444:
+Sending msg 5, TTL 1, to [ff2e::1]:4444:
 ...
 .Ed
 .Sh SEE ALSO

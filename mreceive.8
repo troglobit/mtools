@@ -2,7 +2,7 @@
 .\" First parameter, NAME, should be all caps
 .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 .\" other parameters are allowed: see man(7), man(1)
-.Dd Sep 11, 2024
+.Dd Nov 11, 2024
 .\" Please adjust this date whenever revising the manpage.
 .Dt MSEND 8 SMM
 .Os
@@ -18,6 +18,7 @@
 .Op Fl i Ar ADDRESS
 .Op Fl I Ar INTERFACE
 .Op Fl p Ar PORT
+.Op Fl s Ar ADDRESS
 .Sh DESCRIPTION
 Join a multicast group specified by the
 .Fl g
@@ -33,7 +34,7 @@ command.
 Select IPv4 test group, use with
 .Fl I Ar IFACE
 when not using
-.Fl i Ar ADDR
+.Fl i Ar ADDRESS
 or any
 .Fl g Ar GROUP .
 This is the default.
@@ -43,6 +44,11 @@ Select IPv6 test group when not using
 or
 .Fl g .
 For an example, see below.
+.It Fl s Ar ADDRESS
+Optional source IP address for source-specific filtering (SSM).  By
+default,
+.Nm
+runs in any-source multicast (ASM) mode.
 .It Fl g Ar GROUP
 Specify the IP multicast address from which the packets are received.
 The default group is
@@ -75,14 +81,15 @@ option.
 Print version information.
 .It Fl h
 Print the command usage.
+.El
 .Sh EXAMPLE
 .Bd -literal -offset left
 $ mreceive -6 -I eth0
-Now receiving from multicast group: ff2e::1
-Receive msg 1 from 2001:9b0:214:3500::c2e:37801:
-Receive msg 2 from 2001:9b0:214:3500::c2e:37801:
-Receive msg 3 from 2001:9b0:214:3500::c2e:37801:
-Receive msg 4 from 2001:9b0:214:3500::c2e:37801:
+Now receiving from multicast group: [ff2e::1]:4444
+Receive msg 1 from [2001:9b0:214:3500::c2e]:37801:
+Receive msg 2 from [2001:9b0:214:3500::c2e]:37801:
+Receive msg 3 from [2001:9b0:214:3500::c2e]:37801:
+Receive msg 4 from [2001:9b0:214:3500::c2e]:37801:
 ^C
 .Ed
 .Sh SEE ALSO

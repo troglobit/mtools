@@ -1,7 +1,7 @@
 # mtools
 
 This is a cleaned up version of mtools from the [University of Virginia's
-Multimedia Networks Group][1], with added IPv6 support.
+Multimedia Networks Group][1], with added IPv6 and optional SSM support.
 
 The tools `msend` and `mreceive` can be particulary useful when debugging
 multicast setups.
@@ -15,9 +15,10 @@ multicast setups.
 
 ## SYNOPSIS
 
-	msend [-46hnqv] [-g GROUP] [-p PORT] [-join] [-t TTL] [-i ADDRESS] [-P PERIOD]
-	      [-I INTERFACE] [-c NUM] [-text "text"]
-	mreceive [-46hnqv] [-g group] [-p port] [-i ip] ... [-i ip] [-I INTERFACE]
+	msend [-46hnqv] [-c num] [-g group] [-p port] [-join] [-t TTL] [-i address]
+	      [-I interface] [-P period] [-text "text"]
+	mreceive [-46hnqv] [-s source ] [-g group] [-p port] [-i ip] ... [-i ip]
+	      [-I interface]
 
 ## DESCRIPTION
 
@@ -41,13 +42,19 @@ group:port combination by the `msend` command.
   group.  Example:
 
         $ msend -6 -I eth0
-        Now sending to multicast group: ff2e::1
-        Sending msg 1, TTL 1, to ff2e::1:4444:
+        Now sending to multicast group: [ff2e::1]:4444
+        Sending msg 1, TTL 1, to [ff2e::1]:4444:
         ...
 
 - `-c NUM`
 
   Number of packets to send, default: unlimited.
+
+* `-s SOURCE`
+
+  Source filtering of multicast UDP traffic, a.k.a., source-specific
+  multicast (SSM).  A single IPv4/IPv6 address can be given atm.  By
+  default, no source filtering is done, mtools default to ASM.
 
 * `-g GROUP`
 
