@@ -5,6 +5,8 @@
 #ifndef MTOOLS_INET_H_
 #define MTOOLS_INET_H_
 
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>

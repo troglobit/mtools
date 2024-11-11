@@ -23,23 +23,23 @@ DEPS       := $(OBJS:.o=.d)
 MANS        = $(addsuffix .8,$(EXEC))
 DISTFILES   = ChangeLog.md README.md LICENSE.md
 
-ifeq ($(V),1)
-MAKEFLAGS  += --trace
-endif
-
 all: $(EXEC)
 
 .c.o:
 	@printf "  CC      $@\n"
 	@$(CC) $(CFLAGS) $(CPPFLAGS) -c -MMD -MP -o $@ $<
 
-.o:
+msend: msend.o $(SHARED)
 	@printf "  LINK    $@\n"
-	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ $^ $(LDLIBS$(LDLIBS-$(@)))
+	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ msend.o $(SHARED) $(LDLIBS)
 
-msend:    msend.o    $(SHARED)
 mreceive: mreceive.o $(SHARED)
-ttcp:     ttcp.o
+	@printf "  LINK    $@\n"
+	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ mreceive.o $(SHARED) $(LDLIBS)
+
+ttcp: ttcp.o
+	@printf "  LINK    $@\n"
+	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ ttcp.o $(LDLIBS)
 
 install: $(EXEC)
 	@printf "  INSTALL $(DESTDIR)$(prefix) ...\n"

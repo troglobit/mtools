@@ -26,6 +26,7 @@ int sock_create(inet_addr_t *ina, const char *ifname)
 		return -1;
 	}
 
+#ifdef __linux__
 	if (ifname) {
 		/* Bind to device, required for IPv6 link-local addresses */
 		if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, ifname, IFNAMSIZ - 1)) {
@@ -34,6 +35,9 @@ int sock_create(inet_addr_t *ina, const char *ifname)
 			return -1;
 		}
 	}
+#else
+       (void)ifname;
+#endif
 
 	if (bind(sd, (struct sockaddr *)ina, inet_addrlen(ina))) {
 		perror("bind");
