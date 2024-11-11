@@ -4,12 +4,21 @@ Change Log
 All relevant changes are documented in this file.
 
 
-[v3.1][] - UNRELEASED
+[v3.1][] - 2024-11-11
 ---------------------
 
 ### Changes
+- Add optional `-s ADDR` argument for SSM to `mreceive`, issue #3
 - Add support for quiet (`-q`) mode operation
 - Add credit to original authors in README and man pages
+- Refactor the option parsers to use `getopt(3)`
+- Major refactoring and coding style cleanup, splitting the code base up
+  in more files, renaming internal APIs, all to be able to use RFC3678
+  style APIs for source filtering, issue #3
+
+### Fixes
+- Boundary checking, max number of interfaces, internal buffer lengths
+- Fixes for building on non-Linux systems, tested on FreeBSD 11.0
 
 
 [v3.0][] - 2024-02-24

@@ -1,7 +1,7 @@
 # -*-Makefile-*- for mtools
 # Originally from http://www.cs.virginia.edu/~mngroup/software/
 
-VERSION    ?= 3.0
+VERSION    ?= 3.1
 NAME        = mtools
 PKG         = $(NAME)-$(VERSION)
 ARCHIVE     = $(PKG).tar.gz
