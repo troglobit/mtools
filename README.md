@@ -3,8 +3,8 @@
 This is a cleaned up version of mtools from the [University of Virginia's
 Multimedia Networks Group][1], with added IPv6 and optional SSM support.
 
-The tools `msend` and `mreceive` can be particulary useful when debugging
-multicast setups.
+The tools [`msend(8)`](msend(8).md) and [`mreceive(8)`](mreceive(8).md)
+can be particulary useful when debugging multicast setups.
 
 > Remember, when routing multicast, always check the TTL!
 

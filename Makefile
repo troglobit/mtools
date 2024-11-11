@@ -85,5 +85,10 @@ dist:
 	@(cd ..; md5sum $(ARCHIVE) | tee $(ARCHIVE).md5)
 	@(cd ..; sha256sum $(ARCHIVE) | tee $(ARCHIVE).sha256)
 
+doc:
+	@for file in $(EXEC); do \
+		mandoc -mdoc -T markdown $$file.8 > $$file\(8\).md; \
+	done
+
 # Include automatically generated rules
 -include $(DEPS)
