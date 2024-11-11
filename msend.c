@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 
 	/* join the multicast group we are sending to (usually not necessary!) */
 	if (opt_join) {
-		ret = sock_mc_join(sd, &group, opt_ifname, 0, NULL);
+		ret = sock_mc_join(sd, NULL, &group, opt_ifname, 0, NULL);
 		if (ret)
 			exit(1);
 	}

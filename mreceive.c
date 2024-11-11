@@ -27,7 +27,7 @@ static int usage(int rc)
 {
 	printf("\
 Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
-                [-p PORT]\n\
+                [-p PORT] [-s ADDR]\n\
 \n\
   -4 | -6      Select IPv4 or IPv6, use with -I, when -i is not used\n\
   -g GROUP     IP multicast group address to listen to.\n\
@@ -41,6 +41,7 @@ Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
                a string of characters.  Use this with `msend -n`\n\
   -p PORT      UDP port number used in the multicast packets.  Default: 4444\n\
   -q           Quiet, don't print every received packet, errors still printed\n\
+  -s ADDRESS   Source IP address for source-specific filtering (SSM)\n\
   -v           Print version information.\n\n");
 
 	return rc;
@@ -48,16 +49,16 @@ Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
 
 int main(int argc, char *argv[])
 {
+	inet_addr_t *source = NULL, group;
 	inet_addr_t ifaddr[MAXIP];
 	size_t num_ifaddr = 0;
-	inet_addr_t group;
 	char msg[BUFSIZE];
 	int starttime;
 	int prev = 0;
 	int ret, c;
 	int sd;
 
-	while ((c = getopt(argc, argv, "46g:hi:I:np:qv")) != EOF) {
+	while ((c = getopt(argc, argv, "46g:hi:I:np:qs:v")) != EOF) {
 		switch (c) {
 		case '4':
 			opt_family = AF_INET; /* for completeness */
@@ -72,7 +73,7 @@ int main(int argc, char *argv[])
 			return usage(0);
 		case 'i':
 			if (num_ifaddr >= NELEMS(ifaddr)) {
-				fprintf(stderr, "Too many addresses, max %zu supported.", NELEMS(ifaddr));
+				fprintf(stderr, "Too many addresses, max %zu supported.\n", NELEMS(ifaddr));
 				exit(1);
 			}
 
@@ -98,6 +99,20 @@ int main(int argc, char *argv[])
 			break;
 		case 'q':
 			opt_verbose = 0;
+			break;
+		case 's':
+			if (source) {
+				fprintf(stderr, "Only single source filtering supported currently.\n");
+				exit(1);
+			}
+			source = calloc(1, sizeof(inet_addr_t));
+			if (!source) {
+				perror("calloc");
+				exit(1);
+			}
+			ret = inet_parse(source, optarg, 0);
+			if (ret)
+				exit(1);
 			break;
 		case 'v':
 			printf("mreceive version %s\n", VERSION);
@@ -137,7 +152,7 @@ int main(int argc, char *argv[])
 		exit(1);
 
 	/* join the multicast group. */
-	ret = sock_mc_join(sd, &group, opt_ifname, num_ifaddr, ifaddr);
+	ret = sock_mc_join(sd, source, &group, opt_ifname, num_ifaddr, ifaddr);
 	if (ret)
 		exit(1);
 

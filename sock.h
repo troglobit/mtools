@@ -12,8 +12,8 @@ int         sock_family  (int sd);
 int         sock_mc_loop (int sd, int loop);
 int         sock_mc_ttl  (int sd, int ttl);
 
-int         sock_mc_join (int sd, const inet_addr_t *group, const char *ifname,
-			  int num_saddrs, inet_addr_t *saddrs);
+int         sock_mc_join (int sd, const inet_addr_t *source, const inet_addr_t *group,
+			  const char *ifname, int num_ifaddrs, inet_addr_t *ifaddrs);
 
 #endif /* MTOOLS_SOCK_H_ */
 

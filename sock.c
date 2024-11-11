@@ -145,11 +145,15 @@ static int mc_join_compat(int sd, const inet_addr_t *group, int num, inet_addr_t
 	return ret;
 }
 
-int sock_mc_join(int sd, const inet_addr_t *group, const char *ifname,
-	    int num_saddrs, inet_addr_t *saddrs)
+int sock_mc_join(int sd, const inet_addr_t *source, const inet_addr_t *group,
+		 const char *ifname, int num_ifaddrs, inet_addr_t *ifaddrs)
 {
+	struct group_source_req gsr;
 	struct group_req gr;
-	int ifindex, proto;
+	int op, proto;
+	int ifindex;
+	size_t len;
+	void *arg;
 
 	if (!ifname) {
 		if (group->ss_family == AF_INET6) {
@@ -157,7 +161,7 @@ int sock_mc_join(int sd, const inet_addr_t *group, const char *ifname,
 			return -1;
 		}
 
-		return mc_join_compat(sd, group, num_saddrs, saddrs);
+		return mc_join_compat(sd, group, num_ifaddrs, ifaddrs);
 	}
 
 	ifindex = if_nametoindex(ifname);
@@ -171,11 +175,23 @@ int sock_mc_join(int sd, const inet_addr_t *group, const char *ifname,
 	else
 		proto = IPPROTO_IP;
 
-	gr.gr_interface    = ifindex;
-	gr.gr_group        = *group;
+	if (source) {
+		gsr.gsr_interface  = ifindex;
+		gsr.gsr_source     = *source;
+		gsr.gsr_group      = *group;
+		op                 = MCAST_JOIN_SOURCE_GROUP;
+		arg                = &gsr;
+		len                = sizeof(gsr);
+	} else {
+		gr.gr_interface    = ifindex;
+		gr.gr_group        = *group;
+		op                 = MCAST_JOIN_GROUP;
+		arg                = &gr;
+		len                = sizeof(gr);
+	}
 
-	if (setsockopt(sd, proto, MCAST_JOIN_GROUP, &gr, sizeof(gr))) {
-		perror("setsockopt MCAST_JOIN_GROUP");
+	if (setsockopt(sd, proto, op, arg, len)) {
+		perror("setsockopt MCAST_JOIN*_GROUP");
 		return -1;
 	}
 
