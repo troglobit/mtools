@@ -48,56 +48,56 @@ Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
 
 int main(int argc, char *argv[])
 {
-	unsigned char buf[BUFSIZE];
-	const char *ifname = NULL;
-	unsigned int numreceived;
-	inet_addr_t ip[MAXIP];
-	int rcvCountOld = 0;
-	int rcvCountNew = 1;
-	struct timeval tv;
+	inet_addr_t ifaddr[MAXIP];
+	size_t num_ifaddr = 0;
 	inet_addr_t group;
-	int family = AF_INET;
+	char msg[BUFSIZE];
 	int starttime;
-	int ipnum = 0;
+	int prev = 0;
 	int ret, c;
-	int i, sd;
+	int sd;
 
 	while ((c = getopt(argc, argv, "46g:hi:I:np:qv")) != EOF) {
 		switch (c) {
 		case '4':
-			family = AF_INET; /* for completeness */
+			opt_family = AF_INET; /* for completeness */
 			break;
 		case '6':
-			family = AF_INET6;
+			opt_family = AF_INET6;
 			break;
 		case 'g':
-			test_addr = optarg;
+			group_addr = optarg;
 			break;
 		case 'h':
 			return usage(0);
 		case 'i':
-			ret = inet_parse(&ip[ipnum], optarg, 0);
+			if (num_ifaddr >= NELEMS(ifaddr)) {
+				fprintf(stderr, "Too many addresses, max %zu supported.", NELEMS(ifaddr));
+				exit(1);
+			}
+
+			ret = inet_parse(&ifaddr[num_ifaddr], optarg, 0);
 			if (ret)
 				exit(1);
 
-			family = ip[ipnum++].ss_family;
+			opt_family = ifaddr[num_ifaddr++].ss_family;
 			break;
 		case 'I':
-			if (ifname) {
+			if (opt_ifname) {
 				fprintf(stderr, "Single interface expected\n");
 				exit(1);
 			}
 
-			ifname = optarg;
+			opt_ifname = optarg;
 			break;
 		case 'n':
-			isnumber = 1;
+			opt_isnum = 1;
 			break;
 		case 'p':
-			test_port = atoi(optarg);
+			group_port = atoi(optarg);
 			break;
 		case 'q':
-			verbose = 0;
+			opt_verbose = 0;
 			break;
 		case 'v':
 			printf("mreceive version %s\n", VERSION);
@@ -108,26 +108,26 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (test_addr == NULL) {
-		if (family == AF_INET)
-			test_addr = TEST_ADDR_IPV4;
-		else if (family == AF_INET6)
-			test_addr = TEST_ADDR_IPV6;
+	if (group_addr == NULL) {
+		if (opt_family == AF_INET)
+			group_addr = TEST_ADDR_IPV4;
+		else if (opt_family == AF_INET6)
+			group_addr = TEST_ADDR_IPV6;
 		else
 			exit(1);
 	}
 
-	ret = inet_parse(&group, test_addr, test_port);
+	ret = inet_parse(&group, group_addr, group_port);
 	if (ret)
 		exit(1);
 
-	if (group.ss_family == AF_INET6 && ipnum) {
-		printf("Joining IPv6 groups by source address not supported, use -I\n");
+	if (group.ss_family == AF_INET6 && num_ifaddr) {
+		fprintf(stderr, "Joining IPv6 groups by source address not supported, use -I\n");
 		exit(1);
 	}
 
-	if (group.ss_family == AF_INET6 && !ifname) {
-		printf("-I is mandatory with IPv6\n");
+	if (group.ss_family == AF_INET6 && !opt_ifname) {
+		fprintf(stderr, "-I is mandatory with IPv6\n");
 		exit(1);
 	}
 
@@ -137,13 +137,13 @@ int main(int argc, char *argv[])
 		exit(1);
 
 	/* join the multicast group. */
-	ret = sock_mc_join(sd, &group, ifname, ipnum, ip);
+	ret = sock_mc_join(sd, &group, opt_ifname, num_ifaddr, ifaddr);
 	if (ret)
 		exit(1);
 
-	logit("Now receiving from multicast group: %s\n", test_addr);
+	logit("Now receiving from multicast group: [%s]:%d\n", group_addr, group_port);
 
-	for (i = 0;; i++) {
+	for (int i = 0;; i++) {
 		char from_buf[INET_ADDRSTR_LEN];
 		inet_addr_t from = group;
 		static int counter = 1;
@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 
 		/* receive from the multicast address */
 		len = inet_addrlen(&from);
-		ret = recvfrom(sd, buf, sizeof(buf), 0, (struct sockaddr *)&from, &len);
+		ret = recvfrom(sd, msg, sizeof(msg), 0, (struct sockaddr *)&from, &len);
 		if (ret < 0) {
 			perror("recvfrom");
 			exit(1);
@@ -164,38 +164,33 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 
-		if (isnumber) {
-			int curtime;
+		if (opt_isnum) {
+			int now, curr = atoi(msg);
+			struct timeval tv;
 
 			gettimeofday(&tv, NULL);
-
 			if (i == 0)
-				starttime = tv.tv_sec * 1000000 + tv.tv_usec;
-			curtime = tv.tv_sec * 1000000 + tv.tv_usec - starttime;
-			numreceived =
-			    (unsigned int)buf[0] + ((unsigned int)(buf[1]) << 8) + ((unsigned int)(buf[2]) << 16) +
-			    ((unsigned int)(buf[3]) >> 24);
-			logit("%5d\t%s:%5d\t%d.%03d\t%5u\n", counter,
-			      from_buf, inet_port(&from),
-			      curtime / 1000000, (curtime % 1000000) / 1000, numreceived);
-			fflush(stdout);
-			rcvCountNew = numreceived;
-			if (rcvCountNew > rcvCountOld + 1) {
-				if (rcvCountOld + 1 == rcvCountNew - 1)
-					printf("****************\nMessage not received: %d\n****************\n", rcvCountOld + 1);
+				/* 500 to adjust for already executed instructions */
+				starttime = tv.tv_sec * 1000000 + tv.tv_usec - 500;
+
+			now = tv.tv_sec * 1000000 + tv.tv_usec - starttime;
+			logit("%5d\t[%s]:%5d\t%d.%03d\t%5u\n", counter, from_str, inet_port(&from),
+			      now / 1000000, (now % 1000000) / 1000, curr);
+
+			if (curr > prev + 1) {
+				if (prev + 1 == curr - 1)
+					printf("****************\nMessage not received: %d\n****************\n", prev + 1);
 				else
 					printf("****************\nMessages not received: %d to %d\n****************\n",
-					       rcvCountOld + 1, rcvCountNew - 1);
+					       prev + 1, curr - 1);
 			}
-			if (rcvCountNew == rcvCountOld) {
-				printf("Duplicate message received: %d\n", rcvCountNew);
-			}
-			if (rcvCountNew < rcvCountOld) {
-				printf("****************\nGap detected: %d from %d\n****************\n", rcvCountNew, rcvCountOld);
-			}
-			rcvCountOld = rcvCountNew;
+			if (curr == prev)
+				printf("Duplicate message received: %d\n", curr);
+			if (curr < prev)
+				printf("****************\nGap detected: %d from %d\n****************\n", curr, prev);
+			prev = curr;
 		} else {
-			logit("Receive msg %d from %s:%d: %s\n", counter, from_buf, inet_port(&from), buf);
+			logit("Receive msg %d from [%s]:%d: %s\n", counter, from_str, inet_port(&from), msg);
 		}
 		counter++;
 	}

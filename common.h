@@ -21,12 +21,31 @@
 #define LOOPMAX        20
 #define BUFSIZE        1024
 
-#define logit(fmt, args...) if (verbose) printf(fmt, ##args)
+#ifndef strlcpy			/* older glibc systems */
+#define strlcpy strncpy
+#endif
 
-extern char *test_addr;
-extern int   test_port;
-extern int   isnumber;
-extern int   verbose;
+/* From The Practice of Programming, by Kernighan and Pike */
+#ifndef NELEMS
+#define NELEMS(array) (sizeof(array) / sizeof(array[0]))
+#endif
+
+#define logit(fmt, args...) if (opt_verbose) {   \
+	printf(fmt, ##args); fflush(stdout); \
+}
+
+extern char *group_addr;
+extern int   group_port;
+
+extern int   opt_count;
+extern int   opt_family;
+extern char *opt_ifaddr;
+extern char *opt_ifname;
+extern int   opt_isnum;
+extern int   opt_join;
+extern int   opt_period;
+extern int   opt_ttl;
+extern int   opt_verbose;
 
 #endif /* MTOOLS_COMMON_H_ */
 

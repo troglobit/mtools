@@ -22,48 +22,6 @@
 
 #include "common.h"
 
-typedef struct {
-	int sd;
-
-	struct sockaddr *to;
-	socklen_t to_len;
-
-	char *buf;
-	int len;
-
-	int num_pkts;
-	int ttl;
-} param_t;
-
-param_t param;
-
-
-void timer_cb(int signo)
-{
-	static int counter = 1;
-	int ret;
-
-	(void)signo;
-
-	if (isnumber) {
-		param.buf = (char *)(&counter);
-		param.len = sizeof(counter);
-		logit("Sending msg %d, TTL %d, to %s:%d\n", counter, param.ttl, test_addr, test_port);
-	} else {
-		logit("Sending msg %d, TTL %d, to %s:%d: %s\n", counter, param.ttl, test_addr, test_port, param.buf);
-	}
-
-	ret = sendto(param.sd, param.buf, param.len, 0, param.to, param.to_len);
-	if (ret < 0) {
-		perror("sendto");
-		exit(1);
-	}
-
-	if (counter == param.num_pkts)
-		exit(1);
-
-	counter++;
-}
 
 static int usage(int rc)
 {
@@ -96,6 +54,23 @@ Usage:  msend [-46hnv] [-c NUM] [-g GROUP] [-p PORT] [-join] [-i ADDRESS]\n\
 	return rc;
 }
 
+static int do_send(int sd, inet_addr_t *to, char *msg, size_t len, int isnum)
+{
+	static int counter = 1;
+	int ret;
+
+	if (isnum)
+		snprintf(msg, len, "%d", counter);
+
+	ret = sendto(sd, msg, len, 0, (struct sockaddr *)to, inet_addrlen(to));
+	if (ret < 0) {
+		perror("sendto");
+		exit(1);
+	}
+
+	return counter++;
+}
+
 int main(int argc, char *argv[])
 {
 	static struct option opts[] = {
@@ -104,73 +79,63 @@ int main(int argc, char *argv[])
 		{ NULL,         0,                 NULL, 0   }
 	};
 	inet_addr_t ifaddr, group;
-	const char *ifname = NULL;
-	char buf[BUFSIZE] = { 0 };
-	struct itimerval times;
-	struct sigaction act;
-	int family = AF_INET;
-	char *saddr = NULL;
-	int join_flag = 0;
-	int period = 1000;	/* msec */
-	int num_pkts = 0;
-	sigset_t sigset;
+	char msg[BUFSIZE] = { 0 };
 	int ret, c, sd;
-	int ttl = 1;		/* default for mcast */
 
 	while ((c = getopt_long_only(argc, argv, "46c:g:hi:I:jnp:P:qt:T:v", opts, NULL)) != EOF) {
 		switch (c) {
 		case '4':
-			family = AF_INET; /* for completeness */
+			opt_family = AF_INET; /* for completeness */
 			break;
 		case '6':
-			family = AF_INET6;
+			opt_family = AF_INET6;
 			break;
 		case 'c':
-			num_pkts = atoi(optarg);
+			opt_count = atoi(optarg);
 			break;
 		case 'g':
-			test_addr = optarg;
+			group_addr = optarg;
 			break;
 		case 'h':
 			return usage(0);
 		case 'i':
-			if (saddr) {
-				printf("Single source address allowed\n");
+			if (opt_ifaddr) {
+				fprintf(stderr, "Single source address allowed\n");
 				exit(1);
 			}
-			saddr = strdup(optarg);
-			if (!saddr) {
+			opt_ifaddr = strdup(optarg);
+			if (!opt_ifaddr) {
 				perror("strdup");
 				exit(1);
 			}
 			break;
 		case 'I':
-			if (ifname) {
-				printf("Single interface expected\n");
+			if (opt_ifname) {
+				fprintf(stderr, "Single interface expected\n");
 				exit(1);
 			}
-			ifname = optarg;
+			opt_ifname = optarg;
 			break;
 		case 'j':
-			join_flag++;
+			opt_join++;
 			break;
 		case 'n':
-			isnumber = 1;
+			opt_isnum = 1;
 			break;
 		case 'p':
-			test_port = atoi(optarg);
+			group_port = atoi(optarg);
 			break;
 		case 'P':
-			period = atoi(optarg);
+			opt_period = atoi(optarg);
 			break;
 		case 'q':
-			verbose = 0;
+			opt_verbose = 0;
 			break;
 		case 't':
-			ttl = atoi(optarg);
+			opt_ttl = atoi(optarg);
 			break;
 		case 'T':
-			strcpy(buf, optarg);
+			strlcpy(msg, optarg, sizeof(msg));
 			break;
 		case 'v':
 			printf("msend version %s\n", VERSION);
@@ -181,54 +146,54 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (!saddr) {
-		if (family == AF_INET)
-			saddr = "0.0.0.0";
+	if (!opt_ifaddr) {
+		if (opt_family == AF_INET)
+			opt_ifaddr = "0.0.0.0";
 		else
-			saddr = "::";
+			opt_ifaddr = "::";
 	}
 
-	ret = inet_parse(&ifaddr, saddr, test_port);
+	ret = inet_parse(&ifaddr, opt_ifaddr, group_port);
 	if (ret) {
-		fprintf(stderr, "IP address %s not in known format\n", saddr);
+		fprintf(stderr, "IP address %s not in known format\n", opt_ifaddr);
 		exit(1);
 	}
-	family = ifaddr.ss_family;
+	opt_family = ifaddr.ss_family;
 
-	if (test_addr == NULL) {
-		if (family == AF_INET)
-			test_addr = TEST_ADDR_IPV4;
-		else if (family == AF_INET6)
-			test_addr = TEST_ADDR_IPV6;
+	if (group_addr == NULL) {
+		if (opt_family == AF_INET)
+			group_addr = TEST_ADDR_IPV4;
+		else if (opt_family == AF_INET6)
+			group_addr = TEST_ADDR_IPV6;
 		else
 			exit(1);
 	}
 
-	ret = inet_parse(&group, test_addr, test_port);
+	ret = inet_parse(&group, group_addr, group_port);
 	if (ret) {
-		fprintf(stderr, "Group address %s not in known format\n", test_addr);
+		fprintf(stderr, "Group address %s not in known format\n", group_addr);
 		exit(1);
 	}
 
-	if (join_flag && group.ss_family == AF_INET6 && !ifname) {
+	if (opt_join && group.ss_family == AF_INET6 && !opt_ifname) {
 		fprintf(stderr, "-I is mandatory when joining IPv6 group\n");
 		exit(1);
 	}
 
 	/* get a datagram socket */
-	sd = sock_create(&ifaddr, ifname);
+	sd = sock_create(&ifaddr, opt_ifname);
 	if (sd < 0)
 		exit(1);
 
-	/* join the multicast group. */
-	if (join_flag == 1) {
-		ret = sock_mc_join(sd, &group, ifname, 0, NULL);
+	/* join the multicast group we are sending to (usually not necessary!) */
+	if (opt_join) {
+		ret = sock_mc_join(sd, &group, opt_ifname, 0, NULL);
 		if (ret)
 			exit(1);
 	}
 
 	/* set TTL to traverse up to multiple routers */
-	ret = sock_mc_ttl(sd, ttl);
+	ret = sock_mc_ttl(sd, opt_ttl);
 	if (ret)
 		exit(1);
 
@@ -237,64 +202,48 @@ int main(int argc, char *argv[])
 	if (ret)
 		exit(1);
 
-	printf("Now sending to multicast group: %s\n", test_addr);
+	logit("Now sending to multicast group: [%s]:%d\n", group_addr, group_port);
 
-	period *= 1000;	/* convert to microsecond */
-	if (period > 0) {
+	opt_period *= 1000;	/* convert to microsecond */
+	if (opt_period > 0) {
+		struct itimerval it;
+		sigset_t set;
+
 		/* block SIGALRM */
-		sigemptyset(&sigset);
-		sigaddset(&sigset, SIGALRM);
-		sigprocmask(SIG_BLOCK, &sigset, NULL);
+		sigemptyset(&set);
+		sigaddset(&set, SIGALRM);
+		sigaddset(&set, SIGINT);
+		sigprocmask(SIG_BLOCK, &set, NULL);
 
-		/* set up handler for SIGALRM */
-		act.sa_handler = &timer_cb;
-		sigemptyset(&act.sa_mask);
-		act.sa_flags = SA_SIGINFO;
-		sigaction(SIGALRM, &act, NULL);
 		/*
-		 * set up interval timer
+		 * set up interval timer, sends SIGALRM every opt_period msec
 		 */
-		times.it_value.tv_sec = 0;	/* wait a bit for system to "stabilize"  */
-		times.it_value.tv_usec = 1;	/* tv_sec or tv_usec cannot be both zero */
-		times.it_interval.tv_sec = (time_t)(period / 1000000);
-		times.it_interval.tv_usec = (long)(period % 1000000);
-		setitimer(ITIMER_REAL, &times, NULL);
+		it.it_value.tv_sec     = 0;	/* wait a bit for system to "stabilize"  */
+		it.it_value.tv_usec    = 1;	/* tv_sec or tv_usec cannot be both zero */
+		it.it_interval.tv_sec  = (time_t)(opt_period / 1000000);
+		it.it_interval.tv_usec =   (long)(opt_period % 1000000);
+		setitimer(ITIMER_REAL, &it, NULL);
 
-		param.sd = sd;
-		param.to = (struct sockaddr *)&group;
-		param.to_len = inet_addrlen(&group);
-		param.buf = buf;
-		param.len = strlen(buf) + 1;
-		param.num_pkts = num_pkts;
-		param.ttl = ttl;
-
-		/* now wait for the alarms */
-		sigemptyset(&sigset);
 		for (;;) {
-			sigsuspend(&sigset);
+			int signo = sigwaitinfo(&set, NULL);
+
+			if (signo == SIGALRM) {
+				ret = do_send(sd, &group, msg, sizeof(msg), opt_isnum);
+				logit("Sending msg %d, TTL %d, to [%s]:%d: %s\n", ret, opt_ttl, group_addr, group_port, msg);
+			} else {
+				logit("Git signal %d, exiting!\n", signo);
+				break;
+			}
+
+			if (ret == opt_count)
+				break;
 		}
+
 		return 0;
 	} else {
-		socklen_t len = inet_addrlen(&group);
-		int i;
-
-		for (i = 0; num_pkts && i < num_pkts; i++) {
-			if (isnumber) {
-				buf[3] = (unsigned char)(i >> 24);
-				buf[2] = (unsigned char)(i >> 16);
-				buf[1] = (unsigned char)(i >> 8);
-				buf[0] = (unsigned char)(i);
-				printf("Send out msg %d to %s:%d\n", i, test_addr, test_port);
-			} else {
-				printf("Send out msg %d to %s:%d: %s\n", i, test_addr, test_port, buf);
-			}
-
-			ret = sendto(sd, buf, isnumber ? 4 : strlen(buf) + 1, 0,
-				     (struct sockaddr *)&group, len);
-			if (ret < 0) {
-				perror("sendto");
-				exit(1);
-			}
+		for (int i = 0; i < opt_count; i++) {
+			do_send(sd, &group, msg, sizeof(msg), opt_isnum);
+			logit("Send out msg %d to [%s]:%d: %s\n", i, group_addr, group_port, msg);
 		}
 	}
 
