@@ -18,27 +18,9 @@
  * 
  */
 
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/time.h>
-
 #include "common.h"
 
-#define TTL_VALUE 2
 #define MAXIP     16
-
-struct ip_address ip[MAXIP];
-
-char *test_addr   = NULL;
-int   test_port   = 4444;
-int   isnumber    = 0;
 
 
 static int usage(int rc)
@@ -67,18 +49,18 @@ Usage: mreceive [-46hnv] [-g GROUP] [-i ADDR] ... [-i ADDR] [-I INTERFACE]\n\
 int main(int argc, char *argv[])
 {
 	unsigned char buf[BUFSIZE];
-	const char *if_name = NULL;
+	const char *ifname = NULL;
 	unsigned int numreceived;
-	struct ip_address mc;
-	int family = AF_INET;
-	struct sock s, from;
+	inet_addr_t ip[MAXIP];
 	int rcvCountOld = 0;
 	int rcvCountNew = 1;
 	struct timeval tv;
+	inet_addr_t group;
+	int family = AF_INET;
 	int starttime;
 	int ipnum = 0;
 	int ret, c;
-	int i;
+	int i, sd;
 
 	while ((c = getopt(argc, argv, "46g:hi:I:np:qv")) != EOF) {
 		switch (c) {
@@ -94,19 +76,19 @@ int main(int argc, char *argv[])
 		case 'h':
 			return usage(0);
 		case 'i':
-			ret = ip_address_parse(optarg, &ip[ipnum]);
+			ret = inet_parse(&ip[ipnum], optarg, 0);
 			if (ret)
 				exit(1);
 
-			family = ip[ipnum++].family;
+			family = ip[ipnum++].ss_family;
 			break;
 		case 'I':
-			if (if_name) {
-				printf("Single interface expected\n");
+			if (ifname) {
+				fprintf(stderr, "Single interface expected\n");
 				exit(1);
 			}
 
-			if_name = optarg;
+			ifname = optarg;
 			break;
 		case 'n':
 			isnumber = 1;
@@ -121,7 +103,7 @@ int main(int argc, char *argv[])
 			printf("mreceive version %s\n", VERSION);
 			return 0;
 		default:
-			printf("wrong parameters!\n\n");
+			fprintf(stderr, "wrong parameters!\n\n");
 			return usage(1);
 		}
 	}
@@ -135,58 +117,49 @@ int main(int argc, char *argv[])
 			exit(1);
 	}
 
-	ret = ip_address_parse(test_addr, &mc);
+	ret = inet_parse(&group, test_addr, test_port);
 	if (ret)
 		exit(1);
 
-	if (mc.family == AF_INET6 && ipnum) {
+	if (group.ss_family == AF_INET6 && ipnum) {
 		printf("Joining IPv6 groups by source address not supported, use -I\n");
 		exit(1);
 	}
 
-	if (mc.family == AF_INET6 && !if_name) {
+	if (group.ss_family == AF_INET6 && !ifname) {
 		printf("-I is mandatory with IPv6\n");
 		exit(1);
 	}
 
 	/* get a datagram socket */
-	ret = socket_create(&s, mc.family, test_port, NULL, NULL);
-	if (ret)
+	sd = sock_create(&group, NULL);
+	if (sd < 0)
 		exit(1);
 
 	/* join the multicast group. */
-	ret = mc_join(&s, &mc, if_name, ipnum, ip);
-	if (ret)
-		exit(1);
-
-	/* set TTL to traverse up to multiple routers */
-	ret = mc_set_hop_limit(&s, TTL_VALUE);
+	ret = sock_mc_join(sd, &group, ifname, ipnum, ip);
 	if (ret)
 		exit(1);
 
 	logit("Now receiving from multicast group: %s\n", test_addr);
 
 	for (i = 0;; i++) {
-		char from_buf[INET6_ADDRSTRLEN];
+		char from_buf[INET_ADDRSTR_LEN];
+		inet_addr_t from = group;
 		static int counter = 1;
-		const char *addr_str;
+		const char *from_str;
+		socklen_t len;
 
 		/* receive from the multicast address */
-
-		ret = mc_recv(&s, buf, BUFSIZE, &from);
+		len = inet_addrlen(&from);
+		ret = recvfrom(sd, buf, sizeof(buf), 0, (struct sockaddr *)&from, &len);
 		if (ret < 0) {
 			perror("recvfrom");
 			exit(1);
 		}
 
-		if (mc.family == AF_INET) {
-			addr_str = inet_ntop(AF_INET, &from.udp4.sin_addr,
-					     from_buf, INET6_ADDRSTRLEN);
-		} else {
-			addr_str = inet_ntop(AF_INET6, &from.udp6.sin6_addr,
-					     from_buf, INET6_ADDRSTRLEN);
-		}
-		if (!addr_str) {
+		from_str = inet_address(&from, from_buf, sizeof(from_buf));
+		if (!from_str) {
 			perror("inet_ntop");
 			exit(1);
 		}
@@ -203,7 +176,7 @@ int main(int argc, char *argv[])
 			    (unsigned int)buf[0] + ((unsigned int)(buf[1]) << 8) + ((unsigned int)(buf[2]) << 16) +
 			    ((unsigned int)(buf[3]) >> 24);
 			logit("%5d\t%s:%5d\t%d.%03d\t%5u\n", counter,
-			      from_buf, socket_get_port(&from),
+			      from_buf, inet_port(&from),
 			      curtime / 1000000, (curtime % 1000000) / 1000, numreceived);
 			fflush(stdout);
 			rcvCountNew = numreceived;
@@ -222,7 +195,7 @@ int main(int argc, char *argv[])
 			}
 			rcvCountOld = rcvCountNew;
 		} else {
-			logit("Receive msg %d from %s:%d: %s\n", counter, from_buf, socket_get_port(&from), buf);
+			logit("Receive msg %d from %s:%d: %s\n", counter, from_buf, inet_port(&from), buf);
 		}
 		counter++;
 	}
@@ -232,8 +205,7 @@ int main(int argc, char *argv[])
 
 /**
  * Local Variables:
- *  version-control: t
- *  indent-tabs-mode: t
  *  c-file-style: "linux"
+ *  indent-tabs-mode: t
  * End:
  */

@@ -20,33 +20,20 @@
  * 
  */
 
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <signal.h>
-#include <sys/time.h>
-
 #include "common.h"
 
 typedef struct {
-	struct sock *s;
-	struct sock *to;
+	int sd;
+
+	struct sockaddr *to;
+	socklen_t to_len;
+
 	char *buf;
 	int len;
-	int num_pkts;
-} param_t;
 
-char *test_addr = NULL;
-int   test_port = 4444;
-int   ttl       = 1;
-int   period    = 1000;		/* msec */
-int   isnumber  = 0;
-int   join_flag = 0;		/* not join */
+	int num_pkts;
+	int ttl;
+} param_t;
 
 param_t param;
 
@@ -61,12 +48,12 @@ void timer_cb(int signo)
 	if (isnumber) {
 		param.buf = (char *)(&counter);
 		param.len = sizeof(counter);
-		logit("Sending msg %d, TTL %d, to %s:%d\n", counter, ttl, test_addr, test_port);
+		logit("Sending msg %d, TTL %d, to %s:%d\n", counter, param.ttl, test_addr, test_port);
 	} else {
-		logit("Sending msg %d, TTL %d, to %s:%d: %s\n", counter, ttl, test_addr, test_port, param.buf);
+		logit("Sending msg %d, TTL %d, to %s:%d: %s\n", counter, param.ttl, test_addr, test_port, param.buf);
 	}
 
-	ret = mc_send(param.s, param.to, param.buf, param.len);
+	ret = sendto(param.sd, param.buf, param.len, 0, param.to, param.to_len);
 	if (ret < 0) {
 		perror("sendto");
 		exit(1);
@@ -116,16 +103,19 @@ int main(int argc, char *argv[])
 		{ "text",       required_argument, NULL, 'T' },
 		{ NULL,         0,                 NULL, 0   }
 	};
-	struct ip_address *saddr = NULL, mc;
-	struct sock s = {}, to = {};
-	const char *if_name = NULL;
+	inet_addr_t ifaddr, group;
+	const char *ifname = NULL;
 	char buf[BUFSIZE] = { 0 };
 	struct itimerval times;
 	struct sigaction act;
 	int family = AF_INET;
-	sigset_t sigset;
+	char *saddr = NULL;
+	int join_flag = 0;
+	int period = 1000;	/* msec */
 	int num_pkts = 0;
-	int ret, c;
+	sigset_t sigset;
+	int ret, c, sd;
+	int ttl = 1;		/* default for mcast */
 
 	while ((c = getopt_long_only(argc, argv, "46c:g:hi:I:jnp:P:qt:T:v", opts, NULL)) != EOF) {
 		switch (c) {
@@ -148,25 +138,18 @@ int main(int argc, char *argv[])
 				printf("Single source address allowed\n");
 				exit(1);
 			}
-
-			saddr = calloc(1, sizeof(*saddr));
+			saddr = strdup(optarg);
 			if (!saddr) {
-				printf("Low memory\n");
+				perror("strdup");
 				exit(1);
 			}
-
-			ret = ip_address_parse(optarg, saddr);
-			if (ret)
-				exit(1);
-			family = saddr->family;
 			break;
 		case 'I':
-			if (if_name) {
+			if (ifname) {
 				printf("Single interface expected\n");
 				exit(1);
 			}
-
-			if_name = optarg;
+			ifname = optarg;
 			break;
 		case 'j':
 			join_flag++;
@@ -193,10 +176,24 @@ int main(int argc, char *argv[])
 			printf("msend version %s\n", VERSION);
 			return 0;
 		default:
-			printf("wrong parameters!\n\n");
+			fprintf(stderr, "wrong parameters!\n\n");
 			return usage(1);
 		}
 	}
+
+	if (!saddr) {
+		if (family == AF_INET)
+			saddr = "0.0.0.0";
+		else
+			saddr = "::";
+	}
+
+	ret = inet_parse(&ifaddr, saddr, test_port);
+	if (ret) {
+		fprintf(stderr, "IP address %s not in known format\n", saddr);
+		exit(1);
+	}
+	family = ifaddr.ss_family;
 
 	if (test_addr == NULL) {
 		if (family == AF_INET)
@@ -207,49 +204,38 @@ int main(int argc, char *argv[])
 			exit(1);
 	}
 
-	ret = ip_address_parse(test_addr, &mc);
-	if (ret)
+	ret = inet_parse(&group, test_addr, test_port);
+	if (ret) {
+		fprintf(stderr, "Group address %s not in known format\n", test_addr);
 		exit(1);
+	}
 
-	if (join_flag && mc.family == AF_INET6 && !if_name) {
-		printf("-I is mandatory when joining IPv6 group\n");
+	if (join_flag && group.ss_family == AF_INET6 && !ifname) {
+		fprintf(stderr, "-I is mandatory when joining IPv6 group\n");
 		exit(1);
 	}
 
 	/* get a datagram socket */
-	ret = socket_create(&s, mc.family, test_port, saddr, if_name);
-	if (ret)
+	sd = sock_create(&ifaddr, ifname);
+	if (sd < 0)
 		exit(1);
 
 	/* join the multicast group. */
 	if (join_flag == 1) {
-		ret = mc_join(&s, &mc, if_name, 0, NULL);
+		ret = sock_mc_join(sd, &group, ifname, 0, NULL);
 		if (ret)
 			exit(1);
 	}
 
 	/* set TTL to traverse up to multiple routers */
-	ret = mc_set_hop_limit(&s, ttl);
+	ret = sock_mc_ttl(sd, ttl);
 	if (ret)
 		exit(1);
 
 	/* enable loopback */
-	ret = socket_set_loopback(&s, 1);
+	ret = sock_mc_loop(sd, 1);
 	if (ret)
 		exit(1);
-
-	/* assign our destination address */
-	if (mc.family == AF_INET) {
-		to.udp4.sin_addr = mc.addr;
-		to.udp4.sin_port = htons(test_port);
-		to.udp4.sin_family = AF_INET;
-		to.addr_size = sizeof(struct sockaddr_in);
-	} else {
-		to.udp6.sin6_addr = mc.addr6;
-		to.udp6.sin6_port = htons(test_port);
-		to.udp6.sin6_family = AF_INET6;
-		to.addr_size = sizeof(struct sockaddr_in6);
-	}
 
 	printf("Now sending to multicast group: %s\n", test_addr);
 
@@ -274,11 +260,13 @@ int main(int argc, char *argv[])
 		times.it_interval.tv_usec = (long)(period % 1000000);
 		setitimer(ITIMER_REAL, &times, NULL);
 
-		param.s = &s;
-		param.to = &to;
+		param.sd = sd;
+		param.to = (struct sockaddr *)&group;
+		param.to_len = inet_addrlen(&group);
 		param.buf = buf;
 		param.len = strlen(buf) + 1;
 		param.num_pkts = num_pkts;
+		param.ttl = ttl;
 
 		/* now wait for the alarms */
 		sigemptyset(&sigset);
@@ -287,6 +275,7 @@ int main(int argc, char *argv[])
 		}
 		return 0;
 	} else {
+		socklen_t len = inet_addrlen(&group);
 		int i;
 
 		for (i = 0; num_pkts && i < num_pkts; i++) {
@@ -300,8 +289,8 @@ int main(int argc, char *argv[])
 				printf("Send out msg %d to %s:%d: %s\n", i, test_addr, test_port, buf);
 			}
 
-			ret = mc_send(&s, &to, buf,
-				      isnumber ? 4 : strlen(buf) + 1);
+			ret = sendto(sd, buf, isnumber ? 4 : strlen(buf) + 1, 0,
+				     (struct sockaddr *)&group, len);
 			if (ret < 0) {
 				perror("sendto");
 				exit(1);
@@ -314,8 +303,7 @@ int main(int argc, char *argv[])
 
 /**
  * Local Variables:
- *  version-control: t
- *  indent-tabs-mode: t
  *  c-file-style: "linux"
+ *  indent-tabs-mode: t
  * End:
  */

@@ -17,8 +17,9 @@ mandir      = $(prefix)/share/man/man8
 # ttcp is currently not part of the distribution because its not tested
 # yet.  Please test and let me know at GitHub so I can include it! :)
 EXEC       := msend mreceive
-OBJS       := msend.o mreceive.o common.o
-DEPS       := msend.d mreceive.d common.d
+SHARED     := common.o inet.o sock.o
+OBJS       := msend.o mreceive.o $(SHARED)
+DEPS       := $(OBJS:.o=.d)
 MANS        = $(addsuffix .8,$(EXEC))
 DISTFILES   = ChangeLog.md README.md LICENSE.md
 
@@ -36,8 +37,8 @@ all: $(EXEC)
 	@printf "  LINK    $@\n"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$@.map -o $@ $^ $(LDLIBS$(LDLIBS-$(@)))
 
-msend:    msend.o common.o
-mreceive: mreceive.o common.o
+msend:    msend.o    $(SHARED)
+mreceive: mreceive.o $(SHARED)
 ttcp:     ttcp.o
 
 install: $(EXEC)
