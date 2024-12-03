@@ -146,20 +146,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (!opt_ifaddr) {
-		if (opt_family == AF_INET)
-			opt_ifaddr = "0.0.0.0";
-		else
-			opt_ifaddr = "::";
-	}
-
-	ret = inet_parse(&ifaddr, opt_ifaddr, group_port);
-	if (ret) {
-		fprintf(stderr, "IP address %s not in known format\n", opt_ifaddr);
-		exit(1);
-	}
-	opt_family = ifaddr.ss_family;
-
 	if (group_addr == NULL) {
 		if (opt_family == AF_INET)
 			group_addr = TEST_ADDR_IPV4;
@@ -172,6 +158,22 @@ int main(int argc, char *argv[])
 	ret = inet_parse(&group, group_addr, group_port);
 	if (ret) {
 		fprintf(stderr, "Group address %s not in known format\n", group_addr);
+		exit(1);
+	}
+
+	/* Always derived from group */
+	opt_family = group.ss_family;
+
+	if (!opt_ifaddr) {
+		if (opt_family == AF_INET)
+			opt_ifaddr = "0.0.0.0";
+		else
+			opt_ifaddr = "::";
+	}
+
+	ret = inet_parse(&ifaddr, opt_ifaddr, group_port);
+	if (ret) {
+		fprintf(stderr, "IP address %s not in known format\n", opt_ifaddr);
 		exit(1);
 	}
 
