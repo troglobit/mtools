@@ -72,6 +72,7 @@ Virginia](http://www.cs.virginia.edu/~mngroup/software/).
 - Tested on Ubuntu Linux 14.04 (Amd64) and FreeBSD (Amd64)
 
 
+[v3.2]: https://github.com/troglobit/mtools/compare/v3.1...v3.2
 [v3.1]: https://github.com/troglobit/mtools/compare/v3.0...v3.1
 [v3.0]: https://github.com/troglobit/mtools/compare/v2.3...v3.0
 [v2.3]: https://github.com/troglobit/mtools/compare/v2.2...v2.3
