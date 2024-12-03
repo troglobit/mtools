@@ -4,6 +4,15 @@ Change Log
 All relevant changes are documented in this file.
 
 
+[v3.2][] - 2024-12-03
+---------------------
+
+### Fixes
+
+- Fix #8: ordering bug cause failure to detect address family in a basic
+  `msend -g ff0e::181 -I eth0`.  Regression introduced in v3.1
+
+
 [v3.1][] - 2024-11-11
 ---------------------
 
