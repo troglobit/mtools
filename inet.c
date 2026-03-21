@@ -3,6 +3,7 @@
  */
 
 #include <errno.h>
+#include <string.h>
 #include <arpa/inet.h>
 
 #include "inet.h"
@@ -53,6 +54,8 @@ int inet_parse(inet_addr_t *ina, const char *address, in_port_t port)
 		errno = EINVAL;
 		return -1;
 	}
+
+	memset(ina, 0, sizeof(*ina));
 
 	if (inet_pton(AF_INET6, address, &sin6->sin6_addr) > 0) {
 		sin6->sin6_family = AF_INET6;
